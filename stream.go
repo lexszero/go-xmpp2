@@ -390,7 +390,7 @@ func (cl *Client) handleTls(t *starttls) {
 
 	// Now re-send the initial handshake message to start the new
 	// session.
-	hsOut := &stream{To: cl.Jid.Domain, Version: Version}
+	hsOut := &stream{To: cl.Jid.Domain, Version: XMPPVersion}
 	cl.xmlOut <- hsOut
 }
 
@@ -446,7 +446,7 @@ func (cl *Client) handleSasl(srv *auth) {
 	case "success":
 		Info.Log("Sasl authentication succeeded")
 		cl.Features = nil
-		ss := &stream{To: cl.Jid.Domain, Version: Version}
+		ss := &stream{To: cl.Jid.Domain, Version: XMPPVersion}
 		cl.xmlOut <- ss
 	}
 }
@@ -592,7 +592,7 @@ func (cl *Client) bind(bindAdv *bindIq) {
 	if res != "" {
 		bindReq.Resource = &res
 	}
-	msg := &Iq{Header: Header{Type: "set", Id: <-Id,
+	msg := &Iq{Header: Header{Type: "set", Id: NextId(),
 		Nested: []interface{}{bindReq}}}
 	f := func(st Stanza) bool {
 		iq, ok := st.(*Iq)

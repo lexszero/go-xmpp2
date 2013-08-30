@@ -19,7 +19,7 @@ import (
 
 const (
 	// Version of RFC 3920 that we implement.
-	Version = "1.0"
+	XMPPVersion = "1.0"
 
 	// Various XML namespaces.
 	NsClient  = "jabber:client"
@@ -35,24 +35,6 @@ const (
 	serverSrv = "xmpp-server"
 	clientSrv = "xmpp-client"
 )
-
-// This channel may be used as a convenient way to generate a unique
-// id for an iq, message, or presence stanza.
-var Id <-chan string
-
-func init() {
-	// Start the unique id generator.
-	idCh := make(chan string)
-	Id = idCh
-	go func(ch chan<- string) {
-		id := int64(1)
-		for {
-			str := fmt.Sprintf("id_%d", id)
-			ch <- str
-			id++
-		}
-	}(idCh)
-}
 
 // Extensions can add stanza filters and/or new XML element types.
 type Extension struct {
@@ -135,7 +117,7 @@ func NewClient(jid *JID, password string, exts []Extension) (*Client, error) {
 	}
 
 	cl := new(Client)
-	cl.Uid = <-Id
+	cl.Uid = NextId()
 	cl.password = password
 	cl.Jid = *jid
 	cl.socket = tcp
@@ -173,7 +155,7 @@ func NewClient(jid *JID, password string, exts []Extension) (*Client, error) {
 	}
 
 	// Initial handshake.
-	hsOut := &stream{To: jid.Domain, Version: Version}
+	hsOut := &stream{To: jid.Domain, Version: XMPPVersion}
 	cl.xmlOut <- hsOut
 
 	return cl, nil
@@ -267,7 +249,7 @@ func (cl *Client) bindDone() {
 // presence. The presence can be as simple as a newly-initialized
 // Presence struct.  See RFC 3921, Section 3.
 func (cl *Client) StartSession(getRoster bool, pr *Presence) error {
-	id := <-Id
+	id := NextId()
 	iq := &Iq{Header: Header{To: cl.Jid.Domain, Id: id, Type: "set",
 		Nested: []interface{}{Generic{XMLName: xml.Name{Space: NsSession, Local: "session"}}}}}
 	ch := make(chan error)

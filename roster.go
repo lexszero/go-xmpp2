@@ -49,7 +49,7 @@ func fetchRoster(client *Client) error {
 	rosterUpdate := rosterClients[client.Uid].rosterUpdate
 
 	iq := &Iq{Header: Header{From: client.Jid.String(), Type: "get",
-		Id: <-Id, Nested: []interface{}{RosterQuery{}}}}
+		Id: NextId(), Nested: []interface{}{RosterQuery{}}}}
 	ch := make(chan error)
 	f := func(v Stanza) bool {
 		defer close(ch)
