@@ -1,0 +1,36 @@
+Extension.StanzaHandlers should use reflection, not constructor
+functions.
+
+Rather than use Client.AddFilter(), and Extension.Start(), we should
+have a function in Extension that, if non-nil, accepts a stanza and
+returns a slice of stanzas.
+
+Review all these *Client receiver methods. They should probably either
+all be receivers, or none.
+
+Get rid of Client.Uid.
+
+Maybe put auth-related stuff into its own structure inside Client,
+instead of at Client's top level.
+
+Rename stanzaHandler to something like idCallback. Same for the
+HandleStanza function.
+
+Replace inputControl with something like an enum.
+
+Rename In and Out channels to Recv and Send.
+
+Add a way to broadcast status information as negotiation happens or
+disconnects occur. Possibly a new type of object that can be sent on
+Recv along with stanzas. Or use sync.Cond to protect a state
+variable.
+
+Asynchronously updating Client.Features is not thread safe.
+
+NewClient shouldn't be asynchronous.
+
+Add a Reconnect() function.
+
+Put roster and bind into separate packages, if possible.
+
+Eliminate as many uses of Generic as possible.

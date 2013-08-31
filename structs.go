@@ -11,7 +11,7 @@ import (
 	"encoding/xml"
 	"flag"
 	"fmt"
-	// BUG(cjyar): We should use stringprep
+	// BUG(cjyar): Doesn't use stringprep. Could try the implementation at
 	// "code.google.com/p/go-idn/src/stringprep"
 	"regexp"
 	"strings"

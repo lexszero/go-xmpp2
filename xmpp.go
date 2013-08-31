@@ -3,7 +3,11 @@
 // license that can be found in the LICENSE file.
 
 // This package implements a simple XMPP client according to RFCs 3920
-// and 3921, plus the various XEPs at http://xmpp.org/protocols/.
+// and 3921, plus the various XEPs at http://xmpp.org/protocols/. The
+// implementation is structured as a stack of layers, with TCP at the
+// bottom and the application at the top. The application receives and
+// sends structures representing XMPP stanzas. Additional stanza
+// parsers can be inserted into the stack of layers as extensions.
 package xmpp
 
 import (
@@ -38,6 +42,9 @@ const (
 
 // Extensions can add stanza filters and/or new XML element types.
 type Extension struct {
+	// Maps from an XML namespace to a function which constructs a
+	// structure to hold the contents of stanzas in that
+	// namespace.
 	StanzaHandlers map[string]func(*xml.Name) interface{}
 	Start          func(*Client)
 }
@@ -61,9 +68,9 @@ type Client struct {
 	authDone     bool
 	handlers     chan *stanzaHandler
 	inputControl chan int
-	// Incoming XMPP stanzas from the server will be published on
-	// this channel. Information which is only used by this
-	// library to set up the XMPP stream will not appear here.
+	// Incoming XMPP stanzas from the remote will be published on
+	// this channel. Information which is used by this library to
+	// set up the XMPP stream will not appear here.
 	In <-chan Stanza
 	// Outgoing XMPP stanzas to the server should be sent to this
 	// channel.

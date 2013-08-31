@@ -32,9 +32,6 @@ type stanzaHandler struct {
 	f func(Stanza) bool
 }
 
-// BUG(cjyar) Review all these *Client receiver methods. They should
-// probably either all be receivers, or none.
-
 func (cl *Client) readTransport(w io.WriteCloser) {
 	defer w.Close()
 	p := make([]byte, 1024)
