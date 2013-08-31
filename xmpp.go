@@ -113,11 +113,10 @@ func NewClient(jid *JID, password string, exts []Extension) (*Client, error) {
 			continue
 		}
 		tcp, err = net.DialTCP("tcp", nil, addr)
-		if err != nil {
-			err = fmt.Errorf("DialTCP(%s): %s",
-				addr, err)
-			continue
+		if err == nil {
+			break
 		}
+		err = fmt.Errorf("DialTCP(%s): %s", addr, err)
 	}
 	if tcp == nil {
 		return nil, err
