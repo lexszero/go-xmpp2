@@ -300,39 +300,6 @@ Loop:
 	}
 }
 
-// Stanzas from the remote go up through a stack of filters to the
-// app. This function manages the filters.
-func filterTop(filterOut <-chan <-chan Stanza, filterIn chan<- <-chan Stanza,
-	topFilter <-chan Stanza, app chan<- Stanza) {
-	defer close(app)
-Loop:
-	for {
-		select {
-		case newFilterOut := <-filterOut:
-			if newFilterOut == nil {
-				Warn.Log("Received nil filter")
-				filterIn <- nil
-				continue
-			}
-			filterIn <- topFilter
-			topFilter = newFilterOut
-
-		case data, ok := <-topFilter:
-			if !ok {
-				break Loop
-			}
-			app <- data
-		}
-	}
-}
-
-func filterBottom(from <-chan Stanza, to chan<- Stanza) {
-	defer close(to)
-	for data := range from {
-		to <- data
-	}
-}
-
 func handleStream(ss *stream) {
 }
 

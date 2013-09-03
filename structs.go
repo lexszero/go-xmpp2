@@ -269,8 +269,7 @@ func (er *Error) Error() string {
 	return string(buf)
 }
 
-var bindExt Extension = Extension{StanzaHandlers: map[string]func(*xml.Name) interface{}{NsBind: newBind},
-	Start: func(cl *Client) {}}
+var bindExt Extension = Extension{StanzaHandlers: map[string]func(*xml.Name) interface{}{NsBind: newBind}}
 
 func newBind(name *xml.Name) interface{} {
 	return &bindIq{}

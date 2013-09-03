@@ -1,10 +1,6 @@
 Extension.StanzaHandlers should use reflection, not constructor
 functions.
 
-Rather than use Client.AddFilter(), and Extension.Start(), we should
-have a function in Extension that, if non-nil, accepts a stanza and
-returns a slice of stanzas.
-
 Review all these *Client receiver methods. They should probably either
 all be receivers, or none.
 
