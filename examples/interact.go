@@ -53,11 +53,12 @@ func main() {
 	}
 	defer close(c.Out)
 
-	err = c.StartSession(true, &xmpp.Presence{})
+	err = c.StartSession(&xmpp.Presence{})
 	if err != nil {
 		log.Fatalf("StartSession: %v", err)
 	}
-	roster := xmpp.Roster(c)
+	c.Roster.Update()
+	roster := c.Roster.Get()
 	fmt.Printf("%d roster entries:\n", len(roster))
 	for i, entry := range roster {
 		fmt.Printf("%d: %v\n", i, entry)

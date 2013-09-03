@@ -138,9 +138,9 @@ func (r *Roster) Get() []RosterItem {
 // Synchronously fetch this entity's roster from the server and cache
 // that information. The client can access the roster by watching for
 // RosterQuery objects or by calling Get().
-func (r *Roster) Update(client *Client) {
-	iq := &Iq{Header: Header{From: client.Jid.String(), Type: "get",
-		Id: NextId(), Nested: []interface{}{RosterQuery{}}}}
+func (r *Roster) Update() {
+	iq := &Iq{Header: Header{Type: "get", Id: NextId(),
+		Nested: []interface{}{RosterQuery{}}}}
 	waitchan := make(chan int)
 	done := func() {
 		close(waitchan)
