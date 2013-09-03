@@ -4,8 +4,6 @@ functions.
 Review all these *Client receiver methods. They should probably either
 all be receivers, or none.
 
-Get rid of Client.Uid.
-
 Maybe put auth-related stuff into its own structure inside Client,
 instead of at Client's top level.
 

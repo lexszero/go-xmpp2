@@ -65,10 +65,6 @@ var TlsConfig tls.Config
 
 // The client in a client-server XMPP connection.
 type Client struct {
-	// This client's unique ID. It's unique within the context of
-	// this process, so if multiple Client objects exist, each
-	// will be distinguishable by its Uid.
-	Uid string
 	// This client's JID. This will be updated asynchronously by
 	// the time StartSession() returns.
 	Jid          JID
@@ -139,7 +135,6 @@ func NewClient(jid *JID, password string, exts []Extension) (*Client, error) {
 
 	cl := new(Client)
 	cl.Roster = *roster
-	cl.Uid = NextId()
 	cl.password = password
 	cl.Jid = *jid
 	cl.socket = tcp
