@@ -5,7 +5,7 @@
 package main
 
 import (
-	xmpp ".."
+	"../xmpp"
 	"crypto/tls"
 	"encoding/xml"
 	"flag"
@@ -31,8 +31,6 @@ func init() {
 	// xmpp.Debug = logger
 	xmpp.Info = logger
 	xmpp.Warn = logger
-
-	xmpp.TlsConfig = tls.Config{InsecureSkipVerify: true}
 }
 
 // Demonstrate the API, and allow the user to interact with an XMPP
@@ -47,11 +45,12 @@ func main() {
 		os.Exit(2)
 	}
 
-	c, err := xmpp.NewClient(&jid, *pw, nil)
+	tlsConf := tls.Config{InsecureSkipVerify: true}
+	c, err := xmpp.NewClient(&jid, *pw, tlsConf, nil)
 	if err != nil {
 		log.Fatalf("NewClient(%v): %v", jid, err)
 	}
-	defer close(c.Out)
+	defer close(c.Send)
 
 	err = c.StartSession(&xmpp.Presence{})
 	if err != nil {
@@ -69,7 +68,7 @@ func main() {
 			fmt.Printf("s: %v\n", obj)
 		}
 		fmt.Println("done reading")
-	}(c.In)
+	}(c.Recv)
 
 	p := make([]byte, 1024)
 	for {
@@ -104,7 +103,7 @@ func main() {
 		}
 		err = dec.Decode(stan)
 		if err == nil {
-			c.Out <- stan
+			c.Send <- stan
 		} else {
 			fmt.Printf("Parse error: %v\n", err)
 			break

@@ -341,7 +341,7 @@ func (cl *Client) handleTls(t *starttls) {
 	cl.socketSync.Wait()
 
 	// Negotiate TLS with the server.
-	tls := tls.Client(tcp, &cl.TlsConfig)
+	tls := tls.Client(tcp, &cl.tlsConfig)
 
 	// Make the TLS connection available to the reader, and wait
 	// for it to signal that it's working again.

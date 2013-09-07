@@ -92,7 +92,7 @@ type Client struct {
 	Features                     *Features
 	sendFilterAdd, recvFilterAdd chan Filter
 	// Allows the user to override the TLS configuration.
-	TlsConfig tls.Config
+	tlsConfig tls.Config
 }
 
 // Connect to the appropriate server and authenticate as the given JID
@@ -101,7 +101,7 @@ type Client struct {
 // has completed. The negotiation will occur asynchronously, and any
 // send operation to Client.Out will block until negotiation (resource
 // binding) is complete.
-func NewClient(jid *JID, password string, exts []Extension) (*Client, error) {
+func NewClient(jid *JID, password string, tlsconf tls.Config, exts []Extension) (*Client, error) {
 	// Include the mandatory extensions.
 	roster := newRosterExt()
 	exts = append(exts, roster.Extension)
@@ -140,6 +140,7 @@ func NewClient(jid *JID, password string, exts []Extension) (*Client, error) {
 	cl.socket = tcp
 	cl.handlers = make(chan *stanzaHandler, 100)
 	cl.inputControl = make(chan int)
+	cl.tlsConfig = tlsconf
 
 	extStanza := make(map[xml.Name]reflect.Type)
 	for _, ext := range exts {
