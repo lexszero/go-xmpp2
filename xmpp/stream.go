@@ -305,7 +305,7 @@ func handleStream(ss *stream) {
 
 func (cl *Client) handleStreamError(se *streamError) {
 	Info.Logf("Received stream error: %v", se)
-	close(cl.Out)
+	close(cl.Send)
 }
 
 func (cl *Client) handleFeatures(fe *Features) {
@@ -313,7 +313,7 @@ func (cl *Client) handleFeatures(fe *Features) {
 	if fe.Starttls != nil {
 		start := &starttls{XMLName: xml.Name{Space: NsTLS,
 			Local: "starttls"}}
-		cl.xmlOut <- start
+		cl.sendXml <- start
 		return
 	}
 
@@ -355,7 +355,7 @@ func (cl *Client) handleTls(t *starttls) {
 	// Now re-send the initial handshake message to start the new
 	// session.
 	hsOut := &stream{To: cl.Jid.Domain, Version: XMPPVersion}
-	cl.xmlOut <- hsOut
+	cl.sendXml <- hsOut
 }
 
 // Synchronize with handleTls(). Called from readTransport() when
@@ -385,7 +385,7 @@ func (cl *Client) chooseSasl(fe *Features) {
 
 	if digestMd5 {
 		auth := &auth{XMLName: xml.Name{Space: NsSASL, Local: "auth"}, Mechanism: "DIGEST-MD5"}
-		cl.xmlOut <- auth
+		cl.sendXml <- auth
 	}
 }
 
@@ -411,7 +411,7 @@ func (cl *Client) handleSasl(srv *auth) {
 		Info.Log("Sasl authentication succeeded")
 		cl.Features = nil
 		ss := &stream{To: cl.Jid.Domain, Version: XMPPVersion}
-		cl.xmlOut <- ss
+		cl.sendXml <- ss
 	}
 }
 
@@ -485,17 +485,17 @@ func (cl *Client) saslDigest1(srvMap map[string]string) {
 	clStr := packSasl(clMap)
 	b64 := base64.StdEncoding
 	clObj := &auth{XMLName: xml.Name{Space: NsSASL, Local: "response"}, Chardata: b64.EncodeToString([]byte(clStr))}
-	cl.xmlOut <- clObj
+	cl.sendXml <- clObj
 }
 
 func (cl *Client) saslDigest2(srvMap map[string]string) {
 	if cl.saslExpected == srvMap["rspauth"] {
 		clObj := &auth{XMLName: xml.Name{Space: NsSASL, Local: "response"}}
-		cl.xmlOut <- clObj
+		cl.sendXml <- clObj
 	} else {
 		clObj := &auth{XMLName: xml.Name{Space: NsSASL, Local: "failure"}, Any: &Generic{XMLName: xml.Name{Space: NsSASL,
 			Local: "abort"}}}
-		cl.xmlOut <- clObj
+		cl.sendXml <- clObj
 	}
 }
 
@@ -594,7 +594,7 @@ func (cl *Client) bind(bindAdv *bindIq) {
 		return false
 	}
 	cl.HandleStanza(msg.Id, f)
-	cl.xmlOut <- msg
+	cl.sendXml <- msg
 }
 
 // Register a callback to handle the next XMPP stanza (iq, message, or

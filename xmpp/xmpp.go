@@ -78,11 +78,11 @@ type Client struct {
 	// Incoming XMPP stanzas from the remote will be published on
 	// this channel. Information which is used by this library to
 	// set up the XMPP stream will not appear here.
-	In <-chan Stanza
+	Recv <-chan Stanza
 	// Outgoing XMPP stanzas to the server should be sent to this
 	// channel.
-	Out    chan<- Stanza
-	xmlOut chan<- interface{}
+	Send    chan<- Stanza
+	sendXml chan<- interface{}
 	// The client's roster is also known as the buddy list. It's
 	// the set of contacts which are known to this JID, or which
 	// this JID is known to.
@@ -158,7 +158,7 @@ func NewClient(jid *JID, password string, exts []Extension) (*Client, error) {
 	recvXml := make(chan interface{})
 	go readXml(recvReader, recvXml, extStanza)
 	sendXml := make(chan interface{})
-	cl.xmlOut = sendXml
+	cl.sendXml = sendXml
 	go writeXml(sendWriter, sendXml)
 
 	// Start the reader and writer that convert between XML and
@@ -171,15 +171,15 @@ func NewClient(jid *JID, password string, exts []Extension) (*Client, error) {
 	// Start the manager for the filters that can modify what the
 	// app sees.
 	recvFiltXmpp := make(chan Stanza)
-	cl.In = recvFiltXmpp
+	cl.Recv = recvFiltXmpp
 	go filterMgr(cl.recvFilterAdd, recvRawXmpp, recvFiltXmpp)
 	sendFiltXmpp := make(chan Stanza)
-	cl.Out = sendFiltXmpp
+	cl.Send = sendFiltXmpp
 	go filterMgr(cl.sendFilterAdd, sendFiltXmpp, sendFiltXmpp)
 
 	// Initial handshake.
 	hsOut := &stream{To: jid.Domain, Version: XMPPVersion}
-	cl.xmlOut <- hsOut
+	cl.sendXml <- hsOut
 
 	return cl, nil
 }
@@ -248,14 +248,14 @@ func (cl *Client) StartSession(pr *Presence) error {
 		return false
 	}
 	cl.HandleStanza(id, f)
-	cl.Out <- iq
+	cl.Send <- iq
 
 	// Now wait until the callback is called.
 	if err := <-ch; err != nil {
 		return err
 	}
 	if pr != nil {
-		cl.Out <- pr
+		cl.Send <- pr
 	}
 	return nil
 }

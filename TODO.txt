@@ -12,8 +12,6 @@ HandleStanza function.
 
 Replace inputControl with something like an enum.
 
-Rename In and Out channels to Recv and Send.
-
 Add a way to broadcast status information as negotiation happens or
 disconnects occur. Possibly a new type of object that can be sent on
 Recv along with stanzas. Or use sync.Cond to protect a state
