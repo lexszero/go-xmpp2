@@ -23,6 +23,3 @@ Add a Reconnect() function.
 Put roster and bind into separate packages, if possible.
 
 Eliminate as many uses of Generic as possible.
-
-Don't hard-code TLS auto-accept certificates; instead, make it a
-config file option.

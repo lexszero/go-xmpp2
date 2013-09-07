@@ -61,9 +61,6 @@ type Extension struct {
 	SendFilter Filter
 }
 
-// Allows the user to override the TLS configuration.
-var TlsConfig tls.Config
-
 // The client in a client-server XMPP connection.
 type Client struct {
 	// This client's JID. This will be updated asynchronously by
@@ -94,6 +91,8 @@ type Client struct {
 	// StartSession() returns.
 	Features                     *Features
 	sendFilterAdd, recvFilterAdd chan Filter
+	// Allows the user to override the TLS configuration.
+	TlsConfig tls.Config
 }
 
 // Connect to the appropriate server and authenticate as the given JID
