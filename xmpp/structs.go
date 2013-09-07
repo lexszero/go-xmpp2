@@ -13,6 +13,7 @@ import (
 	"fmt"
 	// BUG(cjyar): Doesn't use stringprep. Could try the implementation at
 	// "code.google.com/p/go-idn/src/stringprep"
+	"reflect"
 	"regexp"
 	"strings"
 )
@@ -269,8 +270,10 @@ func (er *Error) Error() string {
 	return string(buf)
 }
 
-var bindExt Extension = Extension{StanzaHandlers: map[string]func(*xml.Name) interface{}{NsBind: newBind}}
+var bindExt Extension = Extension{}
 
-func newBind(name *xml.Name) interface{} {
-	return &bindIq{}
+func init() {
+	bindExt.StanzaHandlers = make(map[xml.Name]reflect.Type)
+	bName := xml.Name{Space: NsBind, Local: "bind"}
+	bindExt.StanzaHandlers[bName] = reflect.TypeOf(bindIq{})
 }

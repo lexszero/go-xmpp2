@@ -1,6 +1,3 @@
-Extension.StanzaHandlers should use reflection, not constructor
-functions.
-
 Review all these *Client receiver methods. They should probably either
 all be receivers, or none.
 

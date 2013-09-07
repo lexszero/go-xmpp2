@@ -25,7 +25,9 @@ func TestRosterIqUnmarshal(t *testing.T) {
 		NsRoster + `"><item jid="a@b.c"/></query></iq>`
 	iq := Iq{}
 	xml.Unmarshal([]byte(str), &iq)
-	m := map[string]func(*xml.Name) interface{}{NsRoster: newRosterQuery}
+	m := make(map[xml.Name]reflect.Type)
+	name := xml.Name{Space: NsRoster, Local: "query"}
+	m[name] = reflect.TypeOf(RosterQuery{})
 	err := parseExtended(&iq.Header, m)
 	if err != nil {
 		t.Fatalf("parseExtended: %v", err)

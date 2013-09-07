@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"reflect"
 	"sync"
 )
 
@@ -51,7 +52,7 @@ type Extension struct {
 	// Maps from an XML namespace to a function which constructs a
 	// structure to hold the contents of stanzas in that
 	// namespace.
-	StanzaHandlers map[string]func(*xml.Name) interface{}
+	StanzaHandlers map[xml.Name]reflect.Type
 	// If non-nil, will be called once to start the filter
 	// running. RecvFilter intercepts incoming messages on their
 	// way from the remote server to the application; SendFilter
@@ -91,7 +92,7 @@ type Client struct {
 	// asynchronously as new features are received throughout the
 	// connection process. It should not be updated once
 	// StartSession() returns.
-	Features  *Features
+	Features                     *Features
 	sendFilterAdd, recvFilterAdd chan Filter
 }
 
@@ -141,9 +142,13 @@ func NewClient(jid *JID, password string, exts []Extension) (*Client, error) {
 	cl.handlers = make(chan *stanzaHandler, 100)
 	cl.inputControl = make(chan int)
 
-	extStanza := make(map[string]func(*xml.Name) interface{})
+	extStanza := make(map[xml.Name]reflect.Type)
 	for _, ext := range exts {
 		for k, v := range ext.StanzaHandlers {
+			if _, ok := extStanza[k]; !ok {
+				return nil, fmt.Errorf("duplicate handler %s",
+					k)
+			}
 			extStanza[k] = v
 		}
 	}

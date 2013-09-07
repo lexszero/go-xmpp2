@@ -8,6 +8,7 @@ package xmpp
 
 import (
 	"encoding/xml"
+	"reflect"
 )
 
 // Roster query/result
@@ -32,19 +33,14 @@ type rosterCb struct {
 
 type Roster struct {
 	Extension
-	get chan []RosterItem
+	get       chan []RosterItem
 	callbacks chan rosterCb
-	toServer chan Stanza
+	toServer  chan Stanza
 }
 
 type rosterClient struct {
 	rosterChan   <-chan []RosterItem
 	rosterUpdate chan<- RosterItem
-}
-
-// Implicitly becomes part of NewClient's extStanza arg.
-func newRosterQuery(name *xml.Name) interface{} {
-	return &RosterQuery{}
 }
 
 func (r *Roster) rosterMgr(upd <-chan Stanza) {
@@ -53,12 +49,12 @@ func (r *Roster) rosterMgr(upd <-chan Stanza) {
 	var snapshot []RosterItem
 	for {
 		select {
-		case stan, ok := <- upd:
+		case stan, ok := <-upd:
 			if !ok {
 				return
 			}
 			hdr := stan.GetHeader()
-			if f := waits[hdr.Id] ; f != nil {
+			if f := waits[hdr.Id]; f != nil {
 				delete(waits, hdr.Id)
 				f()
 			}
@@ -84,7 +80,7 @@ func (r *Roster) rosterMgr(upd <-chan Stanza) {
 				snapshot = append(snapshot, ri)
 			}
 		case r.get <- snapshot:
-		case cb := <- r.callbacks:
+		case cb := <-r.callbacks:
 			waits[cb.id] = cb.cb
 		}
 	}
@@ -104,12 +100,12 @@ func (r *Roster) makeFilters() (Filter, Filter) {
 		defer close(out)
 		for {
 			select {
-			case stan, ok := <- in:
+			case stan, ok := <-in:
 				if !ok {
 					return
 				}
 				out <- stan
-			case stan := <- r.toServer:
+			case stan := <-r.toServer:
 				out <- stan
 			}
 		}
@@ -119,8 +115,9 @@ func (r *Roster) makeFilters() (Filter, Filter) {
 
 func newRosterExt() *Roster {
 	r := Roster{}
-	r.StanzaHandlers = make(map[string]func(*xml.Name) interface{})
-	r.StanzaHandlers[NsRoster] = newRosterQuery
+	r.StanzaHandlers = make(map[xml.Name]reflect.Type)
+	rName := xml.Name{Space: NsRoster, Local: "query"}
+	r.StanzaHandlers[rName] = reflect.TypeOf(RosterQuery{})
 	r.RecvFilter, r.SendFilter = r.makeFilters()
 	r.get = make(chan []RosterItem)
 	r.callbacks = make(chan rosterCb)

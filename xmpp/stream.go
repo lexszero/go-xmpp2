@@ -20,6 +20,7 @@ import (
 	"io"
 	"math/big"
 	"net"
+	"reflect"
 	"regexp"
 	"strings"
 	"time"
@@ -76,7 +77,7 @@ func (cl *Client) writeTransport(r io.Reader) {
 }
 
 func readXml(r io.Reader, ch chan<- interface{},
-	extStanza map[string]func(*xml.Name) interface{}) {
+	extStanza map[xml.Name]reflect.Type) {
 	if _, ok := Debug.(*noLog); !ok {
 		pr, pw := io.Pipe()
 		go tee(r, pw, "S: ")
@@ -162,7 +163,7 @@ Loop:
 	}
 }
 
-func parseExtended(st *Header, extStanza map[string]func(*xml.Name) interface{}) error {
+func parseExtended(st *Header, extStanza map[xml.Name]reflect.Type) error {
 	// Now parse the stanza's innerxml to find the string that we
 	// can unmarshal this nested element from.
 	reader := strings.NewReader(st.Innerxml)
@@ -176,9 +177,8 @@ func parseExtended(st *Header, extStanza map[string]func(*xml.Name) interface{})
 			return err
 		}
 		if se, ok := t.(xml.StartElement); ok {
-			if con, ok := extStanza[se.Name.Space]; ok {
-				// Call the indicated constructor.
-				nested := con(&se.Name)
+			if typ, ok := extStanza[se.Name]; ok {
+				nested := reflect.New(typ).Interface()
 
 				// Unmarshal the nested element and
 				// stuff it back into the stanza.

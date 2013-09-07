@@ -122,7 +122,7 @@ func TestUnmarshalMessage(t *testing.T) {
 	str := `<message to="a@b.c"><body>foo!</body></message>`
 	r := strings.NewReader(str)
 	ch := make(chan interface{})
-	go readXml(r, ch, make(map[string]func(*xml.Name) interface{}))
+	go readXml(r, ch, make(map[xml.Name]reflect.Type))
 	obs := <-ch
 	exp := &Message{XMLName: xml.Name{Local: "message", Space: "jabber:client"},
 		Header: Header{To: "a@b.c", Innerxml: "<body>foo!</body>"},
