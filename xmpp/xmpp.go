@@ -110,8 +110,10 @@ func NewClient(jid *JID, password string, tlsconf tls.Config, exts []Extension) 
 	// Resolve the domain in the JID.
 	_, srvs, err := net.LookupSRV(clientSrv, "tcp", jid.Domain)
 	if err != nil {
-		return nil, errors.New("LookupSrv " + jid.Domain +
-			": " + err.Error())
+		return nil, fmt.Errorf("LookupSrv %s: %v", jid.Domain, err)
+	}
+	if len(srvs) == 0 {
+		return nil, fmt.Errorf("LookupSrv %s: no results", jid.Domain)
 	}
 
 	var tcp *net.TCPConn
