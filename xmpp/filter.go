@@ -34,16 +34,6 @@ loop:
 	close(botFiltIn)
 }
 
-// Starts the filter chain. Filters will all interpose themselves
-// between srvIn and cliOut.
-func (cl *Client) startFilters(srvIn, cliIn <-chan Stanza) (<-chan Stanza, <-chan Stanza) {
-	cliOut := make(chan Stanza)
-	srvOut := make(chan Stanza)
-	go filterMgr(cl.sendFilterAdd, srvIn, cliOut)
-	go filterMgr(cl.recvFilterAdd, cliIn, srvOut)
-	return cliOut, srvOut
-}
-
 // AddRecvFilter adds a new filter to the top of the stack through which
 // incoming stanzas travel on their way up to the client.
 func (cl *Client) AddRecvFilter(filt Filter) {
