@@ -143,6 +143,8 @@ func NewClient(jid *JID, password string, tlsconf tls.Config, exts []Extension) 
 	cl.handlers = make(chan *stanzaHandler, 100)
 	cl.inputControl = make(chan int)
 	cl.tlsConfig = tlsconf
+	cl.sendFilterAdd = make(chan Filter)
+	cl.recvFilterAdd = make(chan Filter)
 
 	extStanza := make(map[xml.Name]reflect.Type)
 	for _, ext := range exts {
@@ -182,7 +184,12 @@ func NewClient(jid *JID, password string, tlsconf tls.Config, exts []Extension) 
 	go filterMgr(cl.recvFilterAdd, recvRawXmpp, recvFiltXmpp)
 	sendFiltXmpp := make(chan Stanza)
 	cl.Send = sendFiltXmpp
-	go filterMgr(cl.sendFilterAdd, sendFiltXmpp, sendFiltXmpp)
+	go filterMgr(cl.sendFilterAdd, sendFiltXmpp, sendRawXmpp)
+	// Set up the initial filters.
+	for _, ext := range exts {
+		cl.AddRecvFilter(ext.RecvFilter)
+		cl.AddSendFilter(ext.SendFilter)
+	}
 
 	// Initial handshake.
 	hsOut := &stream{To: jid.Domain, Version: XMPPVersion}

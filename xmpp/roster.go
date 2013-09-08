@@ -59,6 +59,9 @@ func (r *Roster) rosterMgr(upd <-chan Stanza) {
 				f()
 			}
 			iq, ok := stan.(*Iq)
+			if !ok {
+				continue
+			}
 			if iq.Type != "set" {
 				continue
 			}
