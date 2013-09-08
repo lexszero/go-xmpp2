@@ -147,7 +147,7 @@ func NewClient(jid *JID, password string, tlsconf tls.Config, exts []Extension) 
 	extStanza := make(map[xml.Name]reflect.Type)
 	for _, ext := range exts {
 		for k, v := range ext.StanzaHandlers {
-			if _, ok := extStanza[k]; !ok {
+			if _, ok := extStanza[k]; ok {
 				return nil, fmt.Errorf("duplicate handler %s",
 					k)
 			}
