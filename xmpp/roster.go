@@ -62,7 +62,7 @@ func (r *Roster) rosterMgr(upd <-chan Stanza) {
 			if !ok {
 				continue
 			}
-			if iq.Type != "set" {
+			if iq.Type != "result" {
 				continue
 			}
 			var rq *RosterQuery
