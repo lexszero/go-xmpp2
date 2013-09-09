@@ -52,6 +52,13 @@ func main() {
 	}
 	defer close(c.Send)
 
+	go func(ch <-chan xmpp.Stanza) {
+		for obj := range ch {
+			fmt.Printf("s: %v\n", obj)
+		}
+		fmt.Println("done reading")
+	}(c.Recv)
+
 	err = c.StartSession(&xmpp.Presence{})
 	if err != nil {
 		log.Fatalf("StartSession: %v", err)
@@ -62,13 +69,6 @@ func main() {
 	for i, entry := range roster {
 		fmt.Printf("%d: %v\n", i, entry)
 	}
-
-	go func(ch <-chan xmpp.Stanza) {
-		for obj := range ch {
-			fmt.Printf("s: %v\n", obj)
-		}
-		fmt.Println("done reading")
-	}(c.Recv)
 
 	p := make([]byte, 1024)
 	for {
