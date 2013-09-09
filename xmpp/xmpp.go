@@ -119,17 +119,17 @@ func NewClient(jid *JID, password string, tlsconf tls.Config, exts []Extension) 
 	var tcp *net.TCPConn
 	for _, srv := range srvs {
 		addrStr := fmt.Sprintf("%s:%d", srv.Target, srv.Port)
-		addr, err := net.ResolveTCPAddr("tcp", addrStr)
+		var addr *net.TCPAddr
+		addr, err = net.ResolveTCPAddr("tcp", addrStr)
 		if err != nil {
 			err = fmt.Errorf("ResolveTCPAddr(%s): %s",
 				addrStr, err.Error())
 			continue
 		}
 		tcp, err = net.DialTCP("tcp", nil, addr)
-		if err == nil {
+		if tcp != nil {
 			break
 		}
-		err = fmt.Errorf("DialTCP(%s): %s", addr, err)
 	}
 	if tcp == nil {
 		return nil, err
