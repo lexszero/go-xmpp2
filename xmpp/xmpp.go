@@ -99,8 +99,9 @@ type Client struct {
 // with the given password. This function will return as soon as a TCP
 // connection has been established, but before XMPP stream negotiation
 // has completed. The negotiation will occur asynchronously, and any
-// send operation to Client.Out will block until negotiation (resource
-// binding) is complete.
+// send operation to Client.Send will block until negotiation
+// (resource binding) is complete. The caller must immediately start
+// reading from Client.Recv.
 func NewClient(jid *JID, password string, tlsconf tls.Config, exts []Extension) (*Client, error) {
 	// Include the mandatory extensions.
 	roster := newRosterExt()
