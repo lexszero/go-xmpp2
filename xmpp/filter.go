@@ -7,31 +7,21 @@ package xmpp
 // the top of the stack. Receive stanzas at the bottom of the stack on
 // input. Send stanzas out the top of the stack on output.
 func filterMgr(filterAdd <-chan Filter, input <-chan Stanza, output chan<- Stanza) {
-	botFiltIn := output
-	topFiltOut := input
-
-loop:
+	defer close(output)
 	for {
 		select {
 		case stan, ok := <-input:
 			if !ok {
-				break loop
-			}
-			botFiltIn <- stan
-
-		case stan, ok := <-topFiltOut:
-			if !ok {
-				break loop
+				return
 			}
 			output <- stan
 
 		case filt := <-filterAdd:
-			newTop := make(chan Stanza)
-			go filt(topFiltOut, newTop)
-			topFiltOut = newTop
+			ch := make(chan Stanza)
+			go filt(input, ch)
+			input = ch
 		}
 	}
-	close(botFiltIn)
 }
 
 // AddRecvFilter adds a new filter to the top of the stack through which
