@@ -305,7 +305,7 @@ func handleStream(ss *stream) {
 
 func (cl *Client) handleStreamError(se *streamError) {
 	Info.Logf("Received stream error: %v", se)
-	close(cl.Send)
+	cl.socket.Close()
 }
 
 func (cl *Client) handleFeatures(fe *Features) {
