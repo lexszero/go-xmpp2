@@ -237,11 +237,10 @@ func (cl *Client) bindDone() {
 }
 
 // Start an XMPP session. A typical XMPP client should call this
-// immediately after creating the Client in order to start the
-// session, retrieve the roster, and broadcast an initial
-// presence. The presence can be as simple as a newly-initialized
-// Presence struct.  See RFC 3921, Section 3. After calling this, a
-// normal client will want to call Roster.Update().
+// immediately after creating the Client in order to start the session
+// and broadcast an initial presence. The presence can be as simple as
+// a newly-initialized Presence struct.  See RFC 3921, Section
+// 3. After calling this, a normal client should call Roster.Update().
 func (cl *Client) StartSession(pr *Presence) error {
 	id := NextId()
 	iq := &Iq{Header: Header{To: cl.Jid.Domain, Id: id, Type: "set",
