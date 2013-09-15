@@ -13,6 +13,8 @@ import (
 	"strings"
 )
 
+// Server is advertising auth mechanisms it supports. Choose one and
+// respond.
 // BUG(cjyar): Doesn't implement TLS/SASL EXTERNAL.
 func (cl *Client) chooseSasl(fe *Features) {
 	var digestMd5 bool
@@ -30,6 +32,7 @@ func (cl *Client) chooseSasl(fe *Features) {
 	}
 }
 
+// Server is responding to our auth request.
 func (cl *Client) handleSasl(srv *auth) {
 	switch strings.ToLower(srv.XMLName.Local) {
 	case "challenge":

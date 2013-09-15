@@ -15,50 +15,6 @@ type callback struct {
 	f func(Stanza) bool
 }
 
-// Receive XMLish structures, handle all the stream-related ones, and
-// send XMPP stanzas on to the client.
-func (cl *Client) recvStream(recvXml <-chan interface{}, sendXmpp chan<- Stanza) {
-	defer close(sendXmpp)
-
-	handlers := make(map[string]func(Stanza) bool)
-Loop:
-	for {
-		select {
-		case h := <-cl.handlers:
-			handlers[h.id] = h.f
-		case x, ok := <-recvXml:
-			if !ok {
-				break Loop
-			}
-			switch obj := x.(type) {
-			case *stream:
-				handleStream(obj)
-			case *streamError:
-				cl.handleStreamError(obj)
-			case *Features:
-				cl.handleFeatures(obj)
-			case *starttls:
-				cl.handleTls(obj)
-			case *auth:
-				cl.handleSasl(obj)
-			case Stanza:
-				send := true
-				id := obj.GetHeader().Id
-				if handlers[id] != nil {
-					f := handlers[id]
-					delete(handlers, id)
-					send = f(obj)
-				}
-				if send {
-					sendXmpp <- obj
-				}
-			default:
-				Warn.Logf("Unhandled non-stanza: %T %#v", x, x)
-			}
-		}
-	}
-}
-
 // Receive XMPP stanzas from the client and send them on to the
 // remote. Don't allow the client to send us any stanzas until
 // negotiation has completed.  This loop is paused until resource
@@ -96,7 +52,47 @@ func sendStream(sendXml chan<- interface{}, recvXmpp <-chan Stanza,
 	}
 }
 
-func handleStream(ss *stream) {
+// Receive XMLish structures, handle all the stream-related ones, and
+// send XMPP stanzas on to the client.
+func (cl *Client) recvStream(recvXml <-chan interface{}, sendXmpp chan<- Stanza) {
+	defer close(sendXmpp)
+
+	handlers := make(map[string]func(Stanza) bool)
+	for {
+		select {
+		case h := <-cl.handlers:
+			handlers[h.id] = h.f
+		case x, ok := <-recvXml:
+			if !ok {
+				return
+			}
+			switch obj := x.(type) {
+			case *stream:
+				// Do nothing.
+			case *streamError:
+				cl.handleStreamError(obj)
+			case *Features:
+				cl.handleFeatures(obj)
+			case *starttls:
+				cl.handleTls(obj)
+			case *auth:
+				cl.handleSasl(obj)
+			case Stanza:
+				send := true
+				id := obj.GetHeader().Id
+				if handlers[id] != nil {
+					f := handlers[id]
+					delete(handlers, id)
+					send = f(obj)
+				}
+				if send {
+					sendXmpp <- obj
+				}
+			default:
+				Warn.Logf("Unhandled non-stanza: %T %#v", x, x)
+			}
+		}
+	}
 }
 
 func (cl *Client) handleStreamError(se *streamError) {
@@ -130,17 +126,6 @@ func (cl *Client) handleTls(t *starttls) {
 	// Now re-send the initial handshake message to start the new
 	// session.
 	cl.sendXml <- &stream{To: cl.Jid.Domain, Version: XMPPVersion}
-}
-
-// Register a callback to handle the next XMPP stanza (iq, message, or
-// presence) with a given id. The provided function will not be called
-// more than once. If it returns false, the stanza will not be made
-// available on the normal Client.Recv channel. The callback must not
-// read from that channel, as deliveries on it cannot proceed until
-// the handler returns true or false.
-func (cl *Client) SetCallback(id string, f func(Stanza) bool) {
-	h := &callback{id: id, f: f}
-	cl.handlers <- h
 }
 
 // Send a request to bind a resource. RFC 3920, section 7.
@@ -189,4 +174,15 @@ func (cl *Client) bind() {
 	}
 	cl.SetCallback(msg.Id, f)
 	cl.sendXml <- msg
+}
+
+// Register a callback to handle the next XMPP stanza (iq, message, or
+// presence) with a given id. The provided function will not be called
+// more than once. If it returns false, the stanza will not be made
+// available on the normal Client.Recv channel. The callback must not
+// read from that channel, as deliveries on it cannot proceed until
+// the handler returns true or false.
+func (cl *Client) SetCallback(id string, f func(Stanza) bool) {
+	h := &callback{id: id, f: f}
+	cl.handlers <- h
 }

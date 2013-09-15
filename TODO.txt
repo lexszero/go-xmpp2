@@ -1,5 +1,5 @@
-Review all these *Client receiver methods. They should probably either
-all be receivers, or none.
+Review all the *Client receiver methods in layer3.go. They should
+probably either all be receivers, or none.
 
 Maybe put auth-related stuff into its own structure inside Client,
 instead of at Client's top level.
