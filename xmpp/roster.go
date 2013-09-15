@@ -1,7 +1,3 @@
-// Copyright 2011 The Go Authors.  All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
-
 package xmpp
 
 // This file contains support for roster management, RFC 3921, Section 7.

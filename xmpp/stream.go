@@ -1,7 +1,3 @@
-// Copyright 2011 The Go Authors.  All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
-
 // This file contains the three layers of processing for the
 // communication with the server: transport (where TLS happens), XML
 // (where strings are converted to go structures), and Stream (where

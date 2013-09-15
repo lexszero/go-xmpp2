@@ -1,7 +1,3 @@
-// Copyright 2011 The Go Authors.  All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
-
 // This package implements a simple XMPP client according to RFCs 3920
 // and 3921, plus the various XEPs at http://xmpp.org/protocols/. The
 // implementation is structured as a stack of layers, with TCP at the
