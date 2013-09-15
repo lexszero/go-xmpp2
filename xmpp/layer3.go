@@ -63,21 +63,19 @@ Loop:
 // with the server. The control channel controls this loop's
 // activity.
 func writeStream(srvOut chan<- interface{}, cliIn <-chan Stanza,
-	control <-chan int) {
+	control <-chan sendCmd) {
 	defer close(srvOut)
 
 	var input <-chan Stanza
 Loop:
 	for {
 		select {
-		case status := <-control:
-			switch status {
-			case 0:
+		case cmd := <-control:
+			switch cmd {
+			case sendDeny:
 				input = nil
-			case 1:
+			case sendAllow:
 				input = cliIn
-			case -1:
-				break Loop
 			}
 		case x, ok := <-input:
 			if !ok {

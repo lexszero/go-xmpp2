@@ -4,8 +4,6 @@ all be receivers, or none.
 Maybe put auth-related stuff into its own structure inside Client,
 instead of at Client's top level.
 
-Replace inputControl with something like an enum.
-
 Add a way to broadcast status information as negotiation happens or
 disconnects occur. Possibly a new type of object that can be sent on
 Recv along with stanzas. Or use sync.Cond to protect a state

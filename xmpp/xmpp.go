@@ -37,6 +37,15 @@ const (
 	clientSrv = "xmpp-client"
 )
 
+// Flow control for preventing sending stanzas until negotiation has
+// completed.
+type sendCmd bool
+
+var (
+	sendAllow sendCmd = true
+	sendDeny  sendCmd = false
+)
+
 // A filter can modify the XMPP traffic to or from the remote
 // server. It's part of an Extension. The filter function will be
 // called in a new goroutine, so it doesn't need to return. The filter
@@ -68,7 +77,7 @@ type Client struct {
 	saslExpected string
 	authDone     bool
 	handlers     chan *callback
-	inputControl chan int
+	inputControl chan sendCmd
 	// Incoming XMPP stanzas from the remote will be published on
 	// this channel. Information which is used by this library to
 	// set up the XMPP stream will not appear here.
@@ -138,7 +147,7 @@ func NewClient(jid *JID, password string, tlsconf tls.Config, exts []Extension) 
 	cl.Jid = *jid
 	cl.socket = tcp
 	cl.handlers = make(chan *callback, 100)
-	cl.inputControl = make(chan int)
+	cl.inputControl = make(chan sendCmd)
 	cl.tlsConfig = tlsconf
 	cl.sendFilterAdd = make(chan Filter)
 	cl.recvFilterAdd = make(chan Filter)
@@ -229,7 +238,7 @@ func tee(r io.Reader, w io.Writer, prefix string) {
 // the negotiations that precede it). Now we can start accepting
 // traffic from the app.
 func (cl *Client) bindDone() {
-	cl.inputControl <- 1
+	cl.inputControl <- sendAllow
 }
 
 // Start an XMPP session. A typical XMPP client should call this
