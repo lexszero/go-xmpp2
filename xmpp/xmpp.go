@@ -166,22 +166,22 @@ func NewClient(jid *JID, password string, tlsconf tls.Config, exts []Extension) 
 	// Start the transport handler, initially unencrypted.
 	recvReader, recvWriter := io.Pipe()
 	sendReader, sendWriter := io.Pipe()
-	go cl.readTransport(recvWriter)
-	go cl.writeTransport(sendReader)
+	go cl.recvTransport(recvWriter)
+	go cl.sendTransport(sendReader)
 
 	// Start the reader and writer that convert to and from XML.
-	recvXml := make(chan interface{})
-	go readXml(recvReader, recvXml, extStanza)
-	sendXml := make(chan interface{})
-	cl.sendXml = sendXml
-	go writeXml(sendWriter, sendXml)
+	recvXmlCh := make(chan interface{})
+	go recvXml(recvReader, recvXmlCh, extStanza)
+	sendXmlCh := make(chan interface{})
+	cl.sendXml = sendXmlCh
+	go sendXml(sendWriter, sendXmlCh)
 
 	// Start the reader and writer that convert between XML and
 	// XMPP stanzas.
 	recvRawXmpp := make(chan Stanza)
-	go cl.readStream(recvXml, recvRawXmpp)
+	go cl.recvStream(recvXmlCh, recvRawXmpp)
 	sendRawXmpp := make(chan Stanza)
-	go writeStream(sendXml, sendRawXmpp, cl.inputControl)
+	go sendStream(sendXmlCh, sendRawXmpp, cl.inputControl)
 
 	// Start the manager for the filters that can modify what the
 	// app sees.

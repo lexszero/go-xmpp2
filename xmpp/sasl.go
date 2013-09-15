@@ -24,7 +24,8 @@ func (cl *Client) chooseSasl(fe *Features) {
 	}
 
 	if digestMd5 {
-		auth := &auth{XMLName: xml.Name{Space: NsSASL, Local: "auth"}, Mechanism: "DIGEST-MD5"}
+		auth := &auth{XMLName: xml.Name{Space: NsSASL, Local: "auth"},
+			Mechanism: "DIGEST-MD5"}
 		cl.sendXml <- auth
 	}
 }
@@ -124,7 +125,8 @@ func (cl *Client) saslDigest1(srvMap map[string]string) {
 	// Encode the map and send it.
 	clStr := packSasl(clMap)
 	b64 := base64.StdEncoding
-	clObj := &auth{XMLName: xml.Name{Space: NsSASL, Local: "response"}, Chardata: b64.EncodeToString([]byte(clStr))}
+	clObj := &auth{XMLName: xml.Name{Space: NsSASL, Local: "response"},
+		Chardata: b64.EncodeToString([]byte(clStr))}
 	cl.sendXml <- clObj
 }
 
@@ -168,19 +170,19 @@ func packSasl(m map[string]string) string {
 // Computes the response string for digest authentication.
 func saslDigestResponse(username, realm, passwd, nonce, cnonceStr,
 	authenticate, digestUri, nonceCountStr string) string {
-	h := func(text string) []byte {
+	h := func(text string) string {
 		h := md5.New()
 		h.Write([]byte(text))
-		return h.Sum(nil)
+		return string(h.Sum(nil))
 	}
-	hex := func(bytes []byte) string {
-		return fmt.Sprintf("%x", bytes)
+	hex := func(input string) string {
+		return fmt.Sprintf("%x", input)
 	}
-	kd := func(secret, data string) []byte {
+	kd := func(secret, data string) string {
 		return h(secret + ":" + data)
 	}
 
-	a1 := string(h(username+":"+realm+":"+passwd)) + ":" +
+	a1 := h(username+":"+realm+":"+passwd) + ":" +
 		nonce + ":" + cnonceStr
 	a2 := authenticate + ":" + digestUri
 	response := hex(kd(hex(h(a1)), nonce+":"+

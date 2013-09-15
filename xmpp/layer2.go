@@ -11,7 +11,9 @@ import (
 	"strings"
 )
 
-func readXml(r io.Reader, ch chan<- interface{},
+// Read bytes from a reader, unmarshal them as XML into structures of
+// the appropriate type, and send those structures on a channel.
+func recvXml(r io.Reader, ch chan<- interface{},
 	extStanza map[xml.Name]reflect.Type) {
 	if _, ok := Debug.(*noLog); !ok {
 		pr, pw := io.Pipe()
@@ -129,7 +131,9 @@ func parseExtended(st *Header, extStanza map[xml.Name]reflect.Type) error {
 	return nil
 }
 
-func writeXml(w io.Writer, ch <-chan interface{}) {
+// Receive structures on a channel, marshal them to XML, and send the
+// bytes on a writer.
+func sendXml(w io.Writer, ch <-chan interface{}) {
 	if _, ok := Debug.(*noLog); !ok {
 		pr, pw := io.Pipe()
 		go tee(pr, w, "C: ")

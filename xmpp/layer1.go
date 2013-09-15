@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-func (cl *Client) readTransport(w io.WriteCloser) {
+func (cl *Client) recvTransport(w io.WriteCloser) {
 	defer w.Close()
 	p := make([]byte, 1024)
 	for {
@@ -35,7 +35,7 @@ func (cl *Client) readTransport(w io.WriteCloser) {
 	}
 }
 
-func (cl *Client) writeTransport(r io.Reader) {
+func (cl *Client) sendTransport(r io.Reader) {
 	defer cl.socket.Close()
 	p := make([]byte, 1024)
 	for {

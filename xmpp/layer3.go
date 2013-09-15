@@ -16,8 +16,10 @@ type callback struct {
 	f func(Stanza) bool
 }
 
-func (cl *Client) readStream(srvIn <-chan interface{}, cliOut chan<- Stanza) {
-	defer close(cliOut)
+// Receive XMLish structures, handle all the stream-related ones, and
+// send XMPP stanzas on to the client.
+func (cl *Client) recvStream(recvXml <-chan interface{}, sendXmpp chan<- Stanza) {
+	defer close(sendXmpp)
 
 	handlers := make(map[string]func(Stanza) bool)
 Loop:
@@ -25,7 +27,7 @@ Loop:
 		select {
 		case h := <-cl.handlers:
 			handlers[h.id] = h.f
-		case x, ok := <-srvIn:
+		case x, ok := <-recvXml:
 			if !ok {
 				break Loop
 			}
@@ -49,7 +51,7 @@ Loop:
 					send = f(obj)
 				}
 				if send {
-					cliOut <- obj
+					sendXmpp <- obj
 				}
 			default:
 				Warn.Logf("Unhandled non-stanza: %T %#v", x, x)
@@ -58,13 +60,15 @@ Loop:
 	}
 }
 
-// This loop is paused until resource binding is complete. Otherwise
-// the app might inject something inappropriate into our negotiations
-// with the server. The control channel controls this loop's
-// activity.
-func writeStream(srvOut chan<- interface{}, cliIn <-chan Stanza,
+// Receive XMPP stanzas from the client and send them on to the
+// remote. Don't allow the client to send us any stanzas until
+// negotiation has completed.  This loop is paused until resource
+// binding is complete. Otherwise the app might inject something
+// inappropriate into our negotiations with the server. The control
+// channel controls this loop's activity.
+func sendStream(sendXml chan<- interface{}, recvXmpp <-chan Stanza,
 	control <-chan sendCmd) {
-	defer close(srvOut)
+	defer close(sendXml)
 
 	var input <-chan Stanza
 Loop:
@@ -75,7 +79,7 @@ Loop:
 			case sendDeny:
 				input = nil
 			case sendAllow:
-				input = cliIn
+				input = recvXmpp
 			}
 		case x, ok := <-input:
 			if !ok {
@@ -85,7 +89,7 @@ Loop:
 				Info.Log("Refusing to send nil stanza")
 				continue
 			}
-			srvOut <- x
+			sendXml <- x
 		}
 	}
 }
