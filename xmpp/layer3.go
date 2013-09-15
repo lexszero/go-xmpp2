@@ -119,7 +119,7 @@ func (cl *Client) handleFeatures(fe *Features) {
 	}
 
 	if fe.Bind != nil {
-		cl.bind(fe.Bind)
+		cl.bind()
 		return
 	}
 }
@@ -144,7 +144,7 @@ func (cl *Client) SetCallback(id string, f func(Stanza) bool) {
 }
 
 // Send a request to bind a resource. RFC 3920, section 7.
-func (cl *Client) bind(bindAdv *bindIq) {
+func (cl *Client) bind() {
 	res := cl.Jid.Resource
 	bindReq := &bindIq{}
 	if res != "" {
