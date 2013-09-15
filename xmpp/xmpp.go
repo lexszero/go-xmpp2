@@ -15,7 +15,6 @@ import (
 	"io"
 	"net"
 	"reflect"
-	"sync"
 )
 
 const (
@@ -39,11 +38,18 @@ const (
 
 // Flow control for preventing sending stanzas until negotiation has
 // completed.
-type sendCmd bool
+type sendCmd int
+
+const (
+	sendAllowConst = iota
+	sendDenyConst
+	sendAbortConst
+)
 
 var (
-	sendAllow sendCmd = true
-	sendDeny  sendCmd = false
+	sendAllow sendCmd = sendAllowConst
+	sendDeny  sendCmd = sendDenyConst
+	sendAbort sendCmd = sendAbortConst
 )
 
 // A filter can modify the XMPP traffic to or from the remote
@@ -72,8 +78,6 @@ type Client struct {
 	// the time StartSession() returns.
 	Jid          JID
 	password     string
-	socket       net.Conn
-	socketSync   sync.WaitGroup
 	saslExpected string
 	authDone     bool
 	handlers     chan *callback
@@ -98,6 +102,7 @@ type Client struct {
 	sendFilterAdd, recvFilterAdd chan Filter
 	// Allows the user to override the TLS configuration.
 	tlsConfig tls.Config
+	layer1    *layer1
 }
 
 // Connect to the appropriate server and authenticate as the given JID
@@ -145,7 +150,6 @@ func NewClient(jid *JID, password string, tlsconf tls.Config, exts []Extension) 
 	cl.Roster = *roster
 	cl.password = password
 	cl.Jid = *jid
-	cl.socket = tcp
 	cl.handlers = make(chan *callback, 100)
 	cl.inputControl = make(chan sendCmd)
 	cl.tlsConfig = tlsconf
@@ -166,8 +170,7 @@ func NewClient(jid *JID, password string, tlsconf tls.Config, exts []Extension) 
 	// Start the transport handler, initially unencrypted.
 	recvReader, recvWriter := io.Pipe()
 	sendReader, sendWriter := io.Pipe()
-	go cl.recvTransport(recvWriter)
-	go cl.sendTransport(sendReader)
+	cl.layer1 = startLayer1(tcp, recvWriter, sendReader)
 
 	// Start the reader and writer that convert to and from XML.
 	recvXmlCh := make(chan interface{})

@@ -4,9 +4,8 @@
 package xmpp
 
 import (
-	"crypto/tls"
 	"encoding/xml"
-	"time"
+	"fmt"
 )
 
 // Callback to handle a stanza with a particular id.
@@ -71,7 +70,6 @@ func sendStream(sendXml chan<- interface{}, recvXmpp <-chan Stanza,
 	defer close(sendXml)
 
 	var input <-chan Stanza
-Loop:
 	for {
 		select {
 		case cmd := <-control:
@@ -80,10 +78,14 @@ Loop:
 				input = nil
 			case sendAllow:
 				input = recvXmpp
+			case sendAbort:
+				return
+			default:
+				panic(fmt.Sprintf("unknown cmd %d", cmd))
 			}
 		case x, ok := <-input:
 			if !ok {
-				break Loop
+				return
 			}
 			if x == nil {
 				Info.Log("Refusing to send nil stanza")
@@ -99,7 +101,7 @@ func handleStream(ss *stream) {
 
 func (cl *Client) handleStreamError(se *streamError) {
 	Info.Logf("Received stream error: %v", se)
-	cl.socket.Close()
+	cl.inputControl <- sendAbort
 }
 
 func (cl *Client) handleFeatures(fe *Features) {
@@ -122,49 +124,12 @@ func (cl *Client) handleFeatures(fe *Features) {
 	}
 }
 
-// readTransport() is running concurrently. We need to stop it,
-// negotiate TLS, then start it again. It calls waitForSocket() in
-// its inner loop; see below.
 func (cl *Client) handleTls(t *starttls) {
-	tcp := cl.socket
-
-	// Set the socket to nil, and wait for the reader routine to
-	// signal that it's paused.
-	cl.socket = nil
-	cl.socketSync.Add(1)
-	cl.socketSync.Wait()
-
-	// Negotiate TLS with the server.
-	tls := tls.Client(tcp, &cl.tlsConfig)
-
-	// Make the TLS connection available to the reader, and wait
-	// for it to signal that it's working again.
-	cl.socketSync.Add(1)
-	cl.socket = tls
-	cl.socketSync.Wait()
-
-	Info.Log("TLS negotiation succeeded.")
-	cl.Features = nil
+	cl.layer1.startTls(&cl.tlsConfig)
 
 	// Now re-send the initial handshake message to start the new
 	// session.
-	hsOut := &stream{To: cl.Jid.Domain, Version: XMPPVersion}
-	cl.sendXml <- hsOut
-}
-
-// Synchronize with handleTls(). Called from readTransport() when
-// cl.socket is nil.
-func (cl *Client) waitForSocket() {
-	// Signal that we've stopped reading from the socket.
-	cl.socketSync.Done()
-
-	// Wait until the socket is available again.
-	for cl.socket == nil {
-		time.Sleep(1e8)
-	}
-
-	// Signal that we're going back to the read loop.
-	cl.socketSync.Done()
+	cl.sendXml <- &stream{To: cl.Jid.Domain, Version: XMPPVersion}
 }
 
 // Register a callback to handle the next XMPP stanza (iq, message, or
