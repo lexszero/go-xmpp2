@@ -5,8 +5,8 @@ package xmpp
 
 import (
 	"io"
-	"time"
 	"net"
+	"time"
 )
 
 func (cl *Client) readTransport(w io.WriteCloser) {

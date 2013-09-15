@@ -4,8 +4,8 @@
 package xmpp
 
 import (
-	"encoding/xml"
 	"crypto/tls"
+	"encoding/xml"
 	"time"
 )
 

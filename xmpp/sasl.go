@@ -3,14 +3,14 @@
 package xmpp
 
 import (
-	"strings"
-	"encoding/xml"
+	"crypto/md5"
+	"crypto/rand"
 	"encoding/base64"
+	"encoding/xml"
 	"fmt"
 	"math/big"
-	"crypto/rand"
 	"regexp"
-	"crypto/md5"
+	"strings"
 )
 
 // BUG(cjyar): Doesn't implement TLS/SASL EXTERNAL.

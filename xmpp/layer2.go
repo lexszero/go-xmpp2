@@ -4,10 +4,10 @@
 package xmpp
 
 import (
-	"io"
-	"reflect"
 	"encoding/xml"
 	"fmt"
+	"io"
+	"reflect"
 	"strings"
 )
 
