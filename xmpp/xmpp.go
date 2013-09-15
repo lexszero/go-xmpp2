@@ -67,7 +67,7 @@ type Client struct {
 	socketSync   sync.WaitGroup
 	saslExpected string
 	authDone     bool
-	handlers     chan *stanzaHandler
+	handlers     chan *callback
 	inputControl chan int
 	// Incoming XMPP stanzas from the remote will be published on
 	// this channel. Information which is used by this library to
@@ -137,7 +137,7 @@ func NewClient(jid *JID, password string, tlsconf tls.Config, exts []Extension) 
 	cl.password = password
 	cl.Jid = *jid
 	cl.socket = tcp
-	cl.handlers = make(chan *stanzaHandler, 100)
+	cl.handlers = make(chan *callback, 100)
 	cl.inputControl = make(chan int)
 	cl.tlsConfig = tlsconf
 	cl.sendFilterAdd = make(chan Filter)
@@ -257,7 +257,7 @@ func (cl *Client) StartSession(pr *Presence) error {
 		ch <- nil
 		return false
 	}
-	cl.HandleStanza(id, f)
+	cl.SetCallback(id, f)
 	cl.Send <- iq
 
 	// Now wait until the callback is called.

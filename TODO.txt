@@ -4,9 +4,6 @@ all be receivers, or none.
 Maybe put auth-related stuff into its own structure inside Client,
 instead of at Client's top level.
 
-Rename stanzaHandler to something like idCallback. Same for the
-HandleStanza function.
-
 Replace inputControl with something like an enum.
 
 Add a way to broadcast status information as negotiation happens or

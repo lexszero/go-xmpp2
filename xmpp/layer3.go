@@ -10,7 +10,7 @@ import (
 )
 
 // Callback to handle a stanza with a particular id.
-type stanzaHandler struct {
+type callback struct {
 	id string
 	// Return true means pass this to the application
 	f func(Stanza) bool
@@ -168,11 +168,11 @@ func (cl *Client) waitForSocket() {
 // Register a callback to handle the next XMPP stanza (iq, message, or
 // presence) with a given id. The provided function will not be called
 // more than once. If it returns false, the stanza will not be made
-// available on the normal Client.In channel. The stanza handler
-// must not read from that channel, as deliveries on it cannot proceed
-// until the handler returns true or false.
-func (cl *Client) HandleStanza(id string, f func(Stanza) bool) {
-	h := &stanzaHandler{id: id, f: f}
+// available on the normal Client.Recv channel. The callback must not
+// read from that channel, as deliveries on it cannot proceed until
+// the handler returns true or false.
+func (cl *Client) SetCallback(id string, f func(Stanza) bool) {
+	h := &callback{id: id, f: f}
 	cl.handlers <- h
 }
 
@@ -220,6 +220,6 @@ func (cl *Client) bind(bindAdv *bindIq) {
 		cl.bindDone()
 		return false
 	}
-	cl.HandleStanza(msg.Id, f)
+	cl.SetCallback(msg.Id, f)
 	cl.sendXml <- msg
 }
