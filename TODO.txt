@@ -9,12 +9,18 @@ disconnects occur. Possibly a new type of object that can be sent on
 Recv along with stanzas. Or use sync.Cond to protect a state
 variable.
 
-Asynchronously updating Client.Features is not thread safe.
+Asynchronously updating Client.Features is not thread safe. Use a
+public function GetFeatures() or similar. Same for setting the JID in
+bind()?
 
-NewClient shouldn't be asynchronous.
+NewClient should be synchronous, so it can update Features and JID and
+leave those as values rather than functions.
 
 Add a Reconnect() function.
 
 Put roster and bind into separate packages, if possible.
 
 Eliminate as many uses of Generic as possible.
+
+Callback doesn't need to return bool. It shouldn't affect what's given
+to the client.
