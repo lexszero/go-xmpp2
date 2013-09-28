@@ -31,3 +31,6 @@ Rename extension.StanzaHandlers to something like StanzaTypes.
 
 Think about how to gracefully shutdown. Probably have a Close()
 function.
+
+Get rid of logging. We're providing status updates. Allow some sort of
+debug flag that prints from layer1.
