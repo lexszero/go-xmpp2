@@ -24,8 +24,8 @@ type RosterItem struct {
 
 type Roster struct {
 	Extension
-	get       chan []RosterItem
-	toServer  chan Stanza
+	get      chan []RosterItem
+	toServer chan Stanza
 }
 
 type rosterClient struct {

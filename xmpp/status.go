@@ -7,7 +7,7 @@ import (
 )
 
 type statmgr struct {
-	newStatus     chan Status
+	newStatus   chan Status
 	newlistener chan chan Status
 }
 
