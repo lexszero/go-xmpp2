@@ -1,29 +1,9 @@
 Review all the *Client receiver methods in layer3.go. They should
 probably either all be receivers, or none.
 
-Maybe put auth-related stuff into its own structure inside Client,
-instead of at Client's top level.
-
-Add a way to broadcast status information as negotiation happens or
-disconnects occur. Possibly a new type of object that can be sent on
-Recv along with stanzas. Or use sync.Cond to protect a state
-variable.
-
-Asynchronously updating Client.Features is not thread safe. Use a
-public function GetFeatures() or similar. Same for setting the JID in
-bind()?
-
-NewClient should be synchronous, so it can update Features and JID and
-leave those as values rather than functions.
-
 Add a Reconnect() function.
 
-Put roster and bind into separate packages, if possible.
-
 Eliminate as many uses of Generic as possible.
-
-Callback doesn't need to return bool. It shouldn't affect what's given
-to the client.
 
 Don't keep the password in memory once we're done with it.
 
