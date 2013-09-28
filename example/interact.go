@@ -42,7 +42,7 @@ func main() {
 	}
 
 	tlsConf := tls.Config{InsecureSkipVerify: true}
-	c, err := xmpp.NewClient(&jid, *pw, tlsConf, nil)
+	c, err := xmpp.NewClient(&jid, *pw, tlsConf, nil, xmpp.Presence{}, nil)
 	if err != nil {
 		log.Fatalf("NewClient(%v): %v", jid, err)
 	}
@@ -55,11 +55,6 @@ func main() {
 		fmt.Println("done reading")
 	}(c.Recv)
 
-	err = c.StartSession(&xmpp.Presence{})
-	if err != nil {
-		log.Fatalf("StartSession: %v", err)
-	}
-	c.Roster.Update()
 	roster := c.Roster.Get()
 	fmt.Printf("%d roster entries:\n", len(roster))
 	for i, entry := range roster {

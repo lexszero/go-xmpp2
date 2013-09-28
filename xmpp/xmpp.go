@@ -36,20 +36,36 @@ const (
 	clientSrv = "xmpp-client"
 )
 
-// Flow control for preventing sending stanzas until negotiation has
-// completed.
-type sendCmd int
+// Status of the connection.
+type Status int
 
 const (
-	sendAllowConst = iota
-	sendDenyConst
-	sendAbortConst
+	statusUnconnected = iota
+	statusConnected
+	statusConnectedTls
+	statusAuthenticated
+	statusBound
+	statusRunning
+	statusShutdown
 )
 
 var (
-	sendAllow sendCmd = sendAllowConst
-	sendDeny  sendCmd = sendDenyConst
-	sendAbort sendCmd = sendAbortConst
+	// The client has not yet connected, or it has been
+	// disconnected from the server.
+	StatusUnconnected Status = statusUnconnected
+	// Initial connection established.
+	StatusConnected Status = statusConnected
+	// Like StatusConnected, but with TLS.
+	StatusConnectedTls Status = statusConnectedTls
+	// Authentication succeeded.
+	StatusAuthenticated Status = statusAuthenticated
+	// Resource binding complete.
+	StatusBound Status = statusBound
+	// Session has started and normal message traffic can be sent
+	// and received.
+	StatusRunning Status = statusRunning
+	// The session has closed, or is in the process of closing.
+	StatusShutdown Status = statusShutdown
 )
 
 // A filter can modify the XMPP traffic to or from the remote
@@ -74,14 +90,12 @@ type Extension struct {
 
 // The client in a client-server XMPP connection.
 type Client struct {
-	// This client's JID. This will be updated asynchronously by
-	// the time StartSession() returns.
+	// This client's full JID, including resource
 	Jid          JID
 	password     string
 	saslExpected string
 	authDone     bool
 	handlers     chan *callback
-	inputControl chan sendCmd
 	// Incoming XMPP stanzas from the remote will be published on
 	// this channel. Information which is used by this library to
 	// set up the XMPP stream will not appear here.
@@ -90,33 +104,50 @@ type Client struct {
 	// channel.
 	Send    chan<- Stanza
 	sendXml chan<- interface{}
+	statmgr *statmgr
 	// The client's roster is also known as the buddy list. It's
 	// the set of contacts which are known to this JID, or which
 	// this JID is known to.
 	Roster Roster
-	// Features advertised by the remote. This will be updated
-	// asynchronously as new features are received throughout the
-	// connection process. It should not be updated once
-	// StartSession() returns.
+	// Features advertised by the remote.
 	Features                     *Features
 	sendFilterAdd, recvFilterAdd chan Filter
-	// Allows the user to override the TLS configuration.
-	tlsConfig tls.Config
-	layer1    *layer1
+	tlsConfig                    tls.Config
+	layer1                       *layer1
 }
 
-// Connect to the appropriate server and authenticate as the given JID
-// with the given password. This function will return as soon as a TCP
-// connection has been established, but before XMPP stream negotiation
-// has completed. The negotiation will occur asynchronously, and any
-// send operation to Client.Send will block until negotiation
-// (resource binding) is complete. The caller must immediately start
-// reading from Client.Recv.
-func NewClient(jid *JID, password string, tlsconf tls.Config, exts []Extension) (*Client, error) {
+// Creates an XMPP client identified by the given JID, authenticating
+// with the provided password and TLS config. Zero or more extensions
+// may be specified. The initial presence will be broadcast. If status
+// is non-nil, connection progress information will be sent on it.
+func NewClient(jid *JID, password string, tlsconf tls.Config, exts []Extension,
+	pr Presence, status chan<- Status) (*Client, error) {
+
 	// Include the mandatory extensions.
 	roster := newRosterExt()
 	exts = append(exts, roster.Extension)
 	exts = append(exts, bindExt)
+
+	cl := new(Client)
+	cl.Roster = *roster
+	cl.password = password
+	cl.Jid = *jid
+	cl.handlers = make(chan *callback, 100)
+	cl.tlsConfig = tlsconf
+	cl.sendFilterAdd = make(chan Filter)
+	cl.recvFilterAdd = make(chan Filter)
+	cl.statmgr = newStatmgr(status)
+
+	extStanza := make(map[xml.Name]reflect.Type)
+	for _, ext := range exts {
+		for k, v := range ext.StanzaHandlers {
+			if _, ok := extStanza[k]; ok {
+				return nil, fmt.Errorf("duplicate handler %s",
+					k)
+			}
+			extStanza[k] = v
+		}
+	}
 
 	// Resolve the domain in the JID.
 	_, srvs, err := net.LookupSRV(clientSrv, "tcp", jid.Domain)
@@ -145,32 +176,13 @@ func NewClient(jid *JID, password string, tlsconf tls.Config, exts []Extension) 
 	if tcp == nil {
 		return nil, err
 	}
-
-	cl := new(Client)
-	cl.Roster = *roster
-	cl.password = password
-	cl.Jid = *jid
-	cl.handlers = make(chan *callback, 100)
-	cl.inputControl = make(chan sendCmd)
-	cl.tlsConfig = tlsconf
-	cl.sendFilterAdd = make(chan Filter)
-	cl.recvFilterAdd = make(chan Filter)
-
-	extStanza := make(map[xml.Name]reflect.Type)
-	for _, ext := range exts {
-		for k, v := range ext.StanzaHandlers {
-			if _, ok := extStanza[k]; ok {
-				return nil, fmt.Errorf("duplicate handler %s",
-					k)
-			}
-			extStanza[k] = v
-		}
-	}
+	cl.setStatus(StatusConnected)
 
 	// Start the transport handler, initially unencrypted.
 	recvReader, recvWriter := io.Pipe()
 	sendReader, sendWriter := io.Pipe()
-	cl.layer1 = startLayer1(tcp, recvWriter, sendReader)
+	cl.layer1 = startLayer1(tcp, recvWriter, sendReader,
+		cl.statmgr.newListener())
 
 	// Start the reader and writer that convert to and from XML.
 	recvXmlCh := make(chan interface{})
@@ -182,12 +194,12 @@ func NewClient(jid *JID, password string, tlsconf tls.Config, exts []Extension) 
 	// Start the reader and writer that convert between XML and
 	// XMPP stanzas.
 	recvRawXmpp := make(chan Stanza)
-	go cl.recvStream(recvXmlCh, recvRawXmpp)
+	go cl.recvStream(recvXmlCh, recvRawXmpp, cl.statmgr.newListener())
 	sendRawXmpp := make(chan Stanza)
-	go sendStream(sendXmlCh, sendRawXmpp, cl.inputControl)
+	go sendStream(sendXmlCh, sendRawXmpp, cl.statmgr.newListener())
 
-	// Start the manager for the filters that can modify what the
-	// app sees.
+	// Start the managers for the filters that can modify what the
+	// app sees or sends.
 	recvFiltXmpp := make(chan Stanza)
 	cl.Recv = recvFiltXmpp
 	go filterMgr(cl.recvFilterAdd, recvRawXmpp, recvFiltXmpp)
@@ -203,6 +215,44 @@ func NewClient(jid *JID, password string, tlsconf tls.Config, exts []Extension) 
 	// Initial handshake.
 	hsOut := &stream{To: jid.Domain, Version: XMPPVersion}
 	cl.sendXml <- hsOut
+
+	// Wait until resource binding is complete.
+	if err := cl.statmgr.awaitStatus(StatusBound); err != nil {
+		return nil, err
+	}
+
+	// Initialize the session.
+	id := NextId()
+	iq := &Iq{Header: Header{To: cl.Jid.Domain, Id: id, Type: "set",
+		Nested: []interface{}{Generic{XMLName: xml.Name{Space: NsSession, Local: "session"}}}}}
+	ch := make(chan error)
+	f := func(st Stanza) {
+		iq, ok := st.(*Iq)
+		if !ok {
+			Warn.Log("iq reply not iq; can't start session")
+			ch <- errors.New("bad session start reply")
+		}
+		if iq.Type == "error" {
+			Warn.Logf("Can't start session: %v", iq)
+			ch <- iq.Error
+		}
+		ch <- nil
+	}
+	cl.SetCallback(id, f)
+	cl.sendXml <- iq
+	// Now wait until the callback is called.
+	if err := <-ch; err != nil {
+		return nil, err
+	}
+
+	// This allows the client to receive stanzas.
+	cl.setStatus(StatusRunning)
+
+	// Request the roster.
+	cl.Roster.update()
+
+	// Send the initial presence.
+	cl.Send <- &pr
 
 	return cl, nil
 }
@@ -235,49 +285,4 @@ func tee(r io.Reader, w io.Writer, prefix string) {
 	if leftover != "" {
 		Debug.Log(buf)
 	}
-}
-
-// bindDone is called when we've finished resource binding (and all
-// the negotiations that precede it). Now we can start accepting
-// traffic from the app.
-func (cl *Client) bindDone() {
-	cl.inputControl <- sendAllow
-}
-
-// Start an XMPP session. A typical XMPP client should call this
-// immediately after creating the Client in order to start the session
-// and broadcast an initial presence. The presence can be as simple as
-// a newly-initialized Presence struct.  See RFC 3921, Section
-// 3. After calling this, a normal client should call Roster.Update().
-func (cl *Client) StartSession(pr *Presence) error {
-	id := NextId()
-	iq := &Iq{Header: Header{To: cl.Jid.Domain, Id: id, Type: "set",
-		Nested: []interface{}{Generic{XMLName: xml.Name{Space: NsSession, Local: "session"}}}}}
-	ch := make(chan error)
-	f := func(st Stanza) bool {
-		iq, ok := st.(*Iq)
-		if !ok {
-			Warn.Log("iq reply not iq; can't start session")
-			ch <- errors.New("bad session start reply")
-			return false
-		}
-		if iq.Type == "error" {
-			Warn.Logf("Can't start session: %v", iq)
-			ch <- iq.Error
-			return false
-		}
-		ch <- nil
-		return false
-	}
-	cl.SetCallback(id, f)
-	cl.Send <- iq
-
-	// Now wait until the callback is called.
-	if err := <-ch; err != nil {
-		return err
-	}
-	if pr != nil {
-		cl.Send <- pr
-	}
-	return nil
 }

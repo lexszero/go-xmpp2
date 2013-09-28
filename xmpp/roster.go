@@ -22,15 +22,9 @@ type RosterItem struct {
 	Group        []string
 }
 
-type rosterCb struct {
-	id string
-	cb func()
-}
-
 type Roster struct {
 	Extension
 	get       chan []RosterItem
-	callbacks chan rosterCb
 	toServer  chan Stanza
 }
 
@@ -41,24 +35,21 @@ type rosterClient struct {
 
 func (r *Roster) rosterMgr(upd <-chan Stanza) {
 	roster := make(map[string]RosterItem)
-	waits := make(map[string]func())
 	var snapshot []RosterItem
+	var get chan<- []RosterItem
 	for {
 		select {
+		case get <- snapshot:
+
 		case stan, ok := <-upd:
 			if !ok {
 				return
-			}
-			hdr := stan.GetHeader()
-			if f := waits[hdr.Id]; f != nil {
-				delete(waits, hdr.Id)
-				f()
 			}
 			iq, ok := stan.(*Iq)
 			if !ok {
 				continue
 			}
-			if iq.Type != "result" {
+			if iq.Type != "result" && iq.Type != "set" {
 				continue
 			}
 			var rq *RosterQuery
@@ -78,9 +69,7 @@ func (r *Roster) rosterMgr(upd <-chan Stanza) {
 			for _, ri := range roster {
 				snapshot = append(snapshot, ri)
 			}
-		case r.get <- snapshot:
-		case cb := <-r.callbacks:
-			waits[cb.id] = cb.cb
+			get = r.get
 		}
 	}
 }
@@ -119,33 +108,22 @@ func newRosterExt() *Roster {
 	r.StanzaHandlers[rName] = reflect.TypeOf(RosterQuery{})
 	r.RecvFilter, r.SendFilter = r.makeFilters()
 	r.get = make(chan []RosterItem)
-	r.callbacks = make(chan rosterCb)
 	r.toServer = make(chan Stanza)
 	return &r
 }
 
 // Return the most recent snapshot of the roster status. This is
 // updated automatically as roster updates are received from the
-// server, but especially in response to calls to Update().
+// server. This function may block immediately after the XMPP
+// connection has been established, until the first roster update is
+// received from the server.
 func (r *Roster) Get() []RosterItem {
 	return <-r.get
 }
 
-// Synchronously fetch this entity's roster from the server and cache
-// that information. The client can access the roster by watching for
-// RosterQuery objects or by calling Get().
-func (r *Roster) Update() {
+// Asynchronously fetch this entity's roster from the server.
+func (r *Roster) update() {
 	iq := &Iq{Header: Header{Type: "get", Id: NextId(),
 		Nested: []interface{}{RosterQuery{}}}}
-	waitchan := make(chan int)
-	done := func() {
-		close(waitchan)
-	}
-	r.waitFor(iq.Id, done)
 	r.toServer <- iq
-	<-waitchan
-}
-
-func (r *Roster) waitFor(id string, cb func()) {
-	r.callbacks <- rosterCb{id: id, cb: cb}
 }

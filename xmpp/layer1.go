@@ -19,13 +19,13 @@ type layer1 struct {
 }
 
 func startLayer1(sock net.Conn, recvWriter io.WriteCloser,
-	sendReader io.ReadCloser) *layer1 {
+	sendReader io.ReadCloser, status <-chan Status) *layer1 {
 	l1 := layer1{sock: sock}
 	recvSocks := make(chan net.Conn)
 	l1.recvSocks = recvSocks
 	sendSocks := make(chan net.Conn, 1)
 	l1.sendSocks = sendSocks
-	go recvTransport(recvSocks, recvWriter)
+	go recvTransport(recvSocks, recvWriter, status)
 	go sendTransport(sendSocks, sendReader)
 	recvSocks <- sock
 	sendSocks <- sock
@@ -50,12 +50,19 @@ func (l1 *layer1) startTls(conf *tls.Config) {
 	l1.recvSocks <- l1.sock
 }
 
-func recvTransport(socks <-chan net.Conn, w io.WriteCloser) {
+func recvTransport(socks <-chan net.Conn, w io.WriteCloser,
+	status <-chan Status) {
+
 	defer w.Close()
 	var sock net.Conn
 	p := make([]byte, 1024)
 	for {
 		select {
+		case stat := <-status:
+			if stat == StatusShutdown {
+				return
+			}
+
 		case sock = <-socks:
 		default:
 		}
@@ -72,12 +79,12 @@ func recvTransport(socks <-chan net.Conn, w io.WriteCloser) {
 					}
 				}
 				Warn.Logf("recvTransport: %s", err)
-				break
+				return
 			}
 			nw, err := w.Write(p[:nr])
 			if nw < nr {
 				Warn.Logf("recvTransport: %s", err)
-				break
+				return
 			}
 		}
 	}

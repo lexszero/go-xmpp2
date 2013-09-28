@@ -24,3 +24,10 @@ Eliminate as many uses of Generic as possible.
 
 Callback doesn't need to return bool. It shouldn't affect what's given
 to the client.
+
+Don't keep the password in memory once we're done with it.
+
+Rename extension.StanzaHandlers to something like StanzaTypes.
+
+Think about how to gracefully shutdown. Probably have a Close()
+function.

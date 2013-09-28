@@ -34,6 +34,7 @@ func TestFilters(t *testing.T) {
 func filterN(numFilts int, t *testing.T) {
 	add := make(chan Filter)
 	in := make(chan Stanza)
+	defer close(in)
 	out := make(chan Stanza)
 	go filterMgr(add, in, out)
 	for i := 0; i < numFilts; i++ {

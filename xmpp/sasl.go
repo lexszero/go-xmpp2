@@ -52,6 +52,7 @@ func (cl *Client) handleSasl(srv *auth) {
 	case "failure":
 		Info.Log("SASL authentication failed")
 	case "success":
+		cl.setStatus(StatusAuthenticated)
 		Info.Log("Sasl authentication succeeded")
 		cl.Features = nil
 		ss := &stream{To: cl.Jid.Domain, Version: XMPPVersion}
