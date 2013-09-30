@@ -76,10 +76,9 @@ type Filter func(in <-chan Stanza, out chan<- Stanza)
 
 // Extensions can add stanza filters and/or new XML element types.
 type Extension struct {
-	// Maps from an XML namespace to a function which constructs a
-	// structure to hold the contents of stanzas in that
-	// namespace.
-	StanzaHandlers map[xml.Name]reflect.Type
+	// Maps from an XML name to a structure which holds stanza
+	// contents with that name.
+	StanzaTypes map[xml.Name]reflect.Type
 	// If non-nil, will be called once to start the filter
 	// running. RecvFilter intercepts incoming messages on their
 	// way from the remote server to the application; SendFilter
@@ -140,7 +139,7 @@ func NewClient(jid *JID, password string, tlsconf tls.Config, exts []Extension,
 
 	extStanza := make(map[xml.Name]reflect.Type)
 	for _, ext := range exts {
-		for k, v := range ext.StanzaHandlers {
+		for k, v := range ext.StanzaTypes {
 			if _, ok := extStanza[k]; ok {
 				return nil, fmt.Errorf("duplicate handler %s",
 					k)

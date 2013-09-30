@@ -103,9 +103,9 @@ func (r *Roster) makeFilters() (Filter, Filter) {
 
 func newRosterExt() *Roster {
 	r := Roster{}
-	r.StanzaHandlers = make(map[xml.Name]reflect.Type)
+	r.StanzaTypes = make(map[xml.Name]reflect.Type)
 	rName := xml.Name{Space: NsRoster, Local: "query"}
-	r.StanzaHandlers[rName] = reflect.TypeOf(RosterQuery{})
+	r.StanzaTypes[rName] = reflect.TypeOf(RosterQuery{})
 	r.RecvFilter, r.SendFilter = r.makeFilters()
 	r.get = make(chan []RosterItem)
 	r.toServer = make(chan Stanza)

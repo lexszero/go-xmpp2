@@ -269,7 +269,7 @@ func (er *Error) Error() string {
 var bindExt Extension = Extension{}
 
 func init() {
-	bindExt.StanzaHandlers = make(map[xml.Name]reflect.Type)
+	bindExt.StanzaTypes = make(map[xml.Name]reflect.Type)
 	bName := xml.Name{Space: NsBind, Local: "bind"}
-	bindExt.StanzaHandlers[bName] = reflect.TypeOf(bindIq{})
+	bindExt.StanzaTypes[bName] = reflect.TypeOf(bindIq{})
 }
