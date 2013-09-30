@@ -41,8 +41,14 @@ func main() {
 		os.Exit(2)
 	}
 
+	stat := make(chan xmpp.Status)
+	go func() {
+		for s := range stat {
+			log.Printf("connection status %d", s)
+		}
+	}()
 	tlsConf := tls.Config{InsecureSkipVerify: true}
-	c, err := xmpp.NewClient(&jid, *pw, tlsConf, nil, xmpp.Presence{}, nil)
+	c, err := xmpp.NewClient(&jid, *pw, tlsConf, nil, xmpp.Presence{}, stat)
 	if err != nil {
 		log.Fatalf("NewClient(%v): %v", jid, err)
 	}
