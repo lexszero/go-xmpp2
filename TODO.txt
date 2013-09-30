@@ -8,5 +8,6 @@ Eliminate as many uses of Generic as possible.
 Think about how to gracefully shutdown. Probably have a Close()
 function.
 
-Get rid of logging. We're providing status updates. Allow some sort of
-debug flag that prints from layer1.
+Get rid of logging. We're providing status updates. Include an error()
+receiver function that lets internals report their errors for return
+from NewClient().
