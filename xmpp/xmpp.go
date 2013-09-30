@@ -221,6 +221,9 @@ func NewClient(jid *JID, password string, tlsconf tls.Config, exts []Extension,
 		return nil, err
 	}
 
+	// Forget about the password, for paranoia's sake.
+	cl.password = ""
+
 	// Initialize the session.
 	id := NextId()
 	iq := &Iq{Header: Header{To: cl.Jid.Domain, Id: id, Type: "set",

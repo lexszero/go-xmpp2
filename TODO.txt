@@ -5,8 +5,6 @@ Add a Reconnect() function.
 
 Eliminate as many uses of Generic as possible.
 
-Don't keep the password in memory once we're done with it.
-
 Rename extension.StanzaHandlers to something like StanzaTypes.
 
 Think about how to gracefully shutdown. Probably have a Close()
