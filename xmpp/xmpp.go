@@ -288,3 +288,10 @@ func tee(r io.Reader, w io.Writer, prefix string) {
 		Debug.Log(buf)
 	}
 }
+
+func (cl *Client) Close() {
+	// Shuts down the receivers:
+	cl.setStatus(StatusShutdown)
+	// Shuts down the senders:
+	close(cl.Send)
+}

@@ -79,6 +79,7 @@ func (r *Roster) makeFilters() (Filter, Filter) {
 	go r.rosterMgr(rosterUpdate)
 	recv := func(in <-chan Stanza, out chan<- Stanza) {
 		defer close(out)
+		defer close(rosterUpdate)
 		for stan := range in {
 			rosterUpdate <- stan
 			out <- stan

@@ -52,7 +52,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("NewClient(%v): %v", jid, err)
 	}
-	defer close(c.Send)
+	defer c.Close()
 
 	go func(ch <-chan xmpp.Stanza) {
 		for obj := range ch {

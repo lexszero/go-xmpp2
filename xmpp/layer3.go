@@ -26,7 +26,10 @@ func sendStream(sendXml chan<- interface{}, recvXmpp <-chan Stanza,
 	var input <-chan Stanza
 	for {
 		select {
-		case stat := <-status:
+		case stat, ok := <-status:
+			if !ok {
+				return
+			}
 			switch stat {
 			default:
 				input = nil
