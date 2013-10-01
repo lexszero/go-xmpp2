@@ -90,7 +90,7 @@ func (s *statmgr) awaitStatus(waitFor Status) error {
 		if current == waitFor {
 			return nil
 		}
-		if current == StatusShutdown {
+		if current.fatal() {
 			break
 		}
 		if current > waitFor {

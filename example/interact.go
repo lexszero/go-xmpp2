@@ -11,22 +11,8 @@ import (
 	"strings"
 )
 
-type StdLogger struct {
-}
-
-func (s *StdLogger) Log(v ...interface{}) {
-	log.Println(v...)
-}
-
-func (s *StdLogger) Logf(fmt string, v ...interface{}) {
-	log.Printf(fmt, v...)
-}
-
 func init() {
-	logger := &StdLogger{}
-	// xmpp.Debug = logger
-	xmpp.Info = logger
-	xmpp.Warn = logger
+	// xmpp.Debug = true
 }
 
 // Demonstrate the API, and allow the user to interact with an XMPP

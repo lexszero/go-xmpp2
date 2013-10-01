@@ -28,7 +28,7 @@ func (cl *Client) chooseSasl(fe *Features) {
 	if digestMd5 {
 		auth := &auth{XMLName: xml.Name{Space: NsSASL, Local: "auth"},
 			Mechanism: "DIGEST-MD5"}
-		cl.sendXml <- auth
+		cl.sendRaw <- auth
 	}
 }
 
@@ -39,7 +39,7 @@ func (cl *Client) handleSasl(srv *auth) {
 		b64 := base64.StdEncoding
 		str, err := b64.DecodeString(srv.Chardata)
 		if err != nil {
-			Warn.Logf("SASL challenge decode: %s", err)
+			cl.setError(fmt.Errorf("SASL: %v", err))
 			return
 		}
 		srvMap := parseSasl(string(str))
@@ -50,13 +50,12 @@ func (cl *Client) handleSasl(srv *auth) {
 			cl.saslDigest2(srvMap)
 		}
 	case "failure":
-		Info.Log("SASL authentication failed")
+		cl.setError(fmt.Errorf("SASL authentication failed"))
 	case "success":
 		cl.setStatus(StatusAuthenticated)
-		Info.Log("Sasl authentication succeeded")
 		cl.Features = nil
 		ss := &stream{To: cl.Jid.Domain, Version: XMPPVersion}
-		cl.sendXml <- ss
+		cl.sendRaw <- ss
 	}
 }
 
@@ -69,7 +68,7 @@ func (cl *Client) saslDigest1(srvMap map[string]string) {
 		}
 	}
 	if !hasAuth {
-		Warn.Log("Server doesn't support SASL auth")
+		cl.setError(fmt.Errorf("Server doesn't support SASL auth"))
 		return
 	}
 
@@ -99,7 +98,7 @@ func (cl *Client) saslDigest1(srvMap map[string]string) {
 	randSize.Lsh(big.NewInt(1), 64)
 	cnonce, err := rand.Int(rand.Reader, randSize)
 	if err != nil {
-		Warn.Logf("SASL rand: %s", err)
+		cl.setError(fmt.Errorf("SASL rand: %v", err))
 		return
 	}
 	cnonceStr := fmt.Sprintf("%016x", cnonce)
@@ -131,17 +130,17 @@ func (cl *Client) saslDigest1(srvMap map[string]string) {
 	b64 := base64.StdEncoding
 	clObj := &auth{XMLName: xml.Name{Space: NsSASL, Local: "response"},
 		Chardata: b64.EncodeToString([]byte(clStr))}
-	cl.sendXml <- clObj
+	cl.sendRaw <- clObj
 }
 
 func (cl *Client) saslDigest2(srvMap map[string]string) {
 	if cl.saslExpected == srvMap["rspauth"] {
 		clObj := &auth{XMLName: xml.Name{Space: NsSASL, Local: "response"}}
-		cl.sendXml <- clObj
+		cl.sendRaw <- clObj
 	} else {
 		clObj := &auth{XMLName: xml.Name{Space: NsSASL, Local: "failure"}, Any: &Generic{XMLName: xml.Name{Space: NsSASL,
 			Local: "abort"}}}
-		cl.sendXml <- clObj
+		cl.sendRaw <- clObj
 	}
 }
 

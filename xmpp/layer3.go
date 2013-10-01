@@ -5,6 +5,8 @@ package xmpp
 
 import (
 	"encoding/xml"
+	"fmt"
+	"log"
 )
 
 // Callback to handle a stanza with a particular id.
@@ -41,7 +43,9 @@ func sendStream(sendXml chan<- interface{}, recvXmpp <-chan Stanza,
 				return
 			}
 			if x == nil {
-				Info.Log("Refusing to send nil stanza")
+				if Debug {
+					log.Println("Won't send nil stanza")
+				}
 				continue
 			}
 			sendXml <- x
@@ -77,7 +81,8 @@ func (cl *Client) recvStream(recvXml <-chan interface{}, sendXmpp chan<- Stanza,
 			case *stream:
 				// Do nothing.
 			case *streamError:
-				cl.handleStreamError(obj)
+				cl.setError(fmt.Errorf("%#v", obj))
+				return
 			case *Features:
 				cl.handleFeatures(obj)
 			case *starttls:
@@ -95,15 +100,13 @@ func (cl *Client) recvStream(recvXml <-chan interface{}, sendXmpp chan<- Stanza,
 					sendXmpp <- obj
 				}
 			default:
-				Warn.Logf("Unhandled non-stanza: %T %#v", x, x)
+				if Debug {
+					log.Printf("Unrecognized input: %T %#v",
+						x, x)
+				}
 			}
 		}
 	}
-}
-
-func (cl *Client) handleStreamError(se *streamError) {
-	Info.Logf("Received stream error: %v", se)
-	cl.setStatus(StatusShutdown)
 }
 
 func (cl *Client) handleFeatures(fe *Features) {
@@ -111,7 +114,7 @@ func (cl *Client) handleFeatures(fe *Features) {
 	if fe.Starttls != nil {
 		start := &starttls{XMLName: xml.Name{Space: NsTLS,
 			Local: "starttls"}}
-		cl.sendXml <- start
+		cl.sendRaw <- start
 		return
 	}
 
@@ -133,7 +136,7 @@ func (cl *Client) handleTls(t *starttls) {
 
 	// Now re-send the initial handshake message to start the new
 	// session.
-	cl.sendXml <- &stream{To: cl.Jid.Domain, Version: XMPPVersion}
+	cl.sendRaw <- &stream{To: cl.Jid.Domain, Version: XMPPVersion}
 }
 
 // Send a request to bind a resource. RFC 3920, section 7.
@@ -148,10 +151,13 @@ func (cl *Client) bind() {
 	f := func(st Stanza) {
 		iq, ok := st.(*Iq)
 		if !ok {
-			Warn.Log("non-iq response")
+			cl.setError(fmt.Errorf("non-iq response to bind %#v",
+				st))
+			return
 		}
 		if iq.Type == "error" {
-			Warn.Log("Resource binding failed")
+			cl.setError(fmt.Errorf("Resource binding failed"))
+			return
 		}
 		var bindRepl *bindIq
 		for _, ele := range iq.Nested {
@@ -161,22 +167,26 @@ func (cl *Client) bind() {
 			}
 		}
 		if bindRepl == nil {
-			Warn.Logf("Bad bind reply: %#v", iq)
+			cl.setError(fmt.Errorf("Bad bind reply: %#v", iq))
+			return
 		}
 		jidStr := bindRepl.Jid
 		if jidStr == nil || *jidStr == "" {
-			Warn.Log("Can't bind empty resource")
+			cl.setError(fmt.Errorf("empty resource in bind %#v",
+				iq))
+			return
 		}
 		jid := new(JID)
 		if err := jid.Set(*jidStr); err != nil {
-			Warn.Logf("Can't parse JID %s: %s", *jidStr, err)
+			cl.setError(fmt.Errorf("bind: an't parse JID %s: %v",
+				*jidStr, err))
+			return
 		}
 		cl.Jid = *jid
-		Info.Logf("Bound resource: %s", cl.Jid.String())
 		cl.setStatus(StatusBound)
 	}
 	cl.SetCallback(msg.Id, f)
-	cl.sendXml <- msg
+	cl.sendRaw <- msg
 }
 
 // Register a callback to handle the next XMPP stanza (iq, message, or

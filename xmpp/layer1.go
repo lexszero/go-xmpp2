@@ -5,10 +5,15 @@ package xmpp
 
 import (
 	"crypto/tls"
+	"fmt"
 	"io"
+	"log"
 	"net"
 	"time"
 )
+
+// If enabled, print all sent and received XML.
+var Debug = false
 
 var l1interval = time.Second
 
@@ -18,15 +23,15 @@ type layer1 struct {
 	sendSocks chan net.Conn
 }
 
-func startLayer1(sock net.Conn, recvWriter io.WriteCloser,
+func (cl *Client) startLayer1(sock net.Conn, recvWriter io.WriteCloser,
 	sendReader io.ReadCloser, status <-chan Status) *layer1 {
 	l1 := layer1{sock: sock}
 	recvSocks := make(chan net.Conn)
 	l1.recvSocks = recvSocks
 	sendSocks := make(chan net.Conn, 1)
 	l1.sendSocks = sendSocks
-	go recvTransport(recvSocks, recvWriter, status)
-	go sendTransport(sendSocks, sendReader)
+	go cl.recvTransport(recvSocks, recvWriter, status)
+	go cl.sendTransport(sendSocks, sendReader)
 	recvSocks <- sock
 	sendSocks <- sock
 	return &l1
@@ -50,7 +55,7 @@ func (l1 *layer1) startTls(conf *tls.Config) {
 	l1.recvSocks <- l1.sock
 }
 
-func recvTransport(socks <-chan net.Conn, w io.WriteCloser,
+func (cl *Client) recvTransport(socks <-chan net.Conn, w io.WriteCloser,
 	status <-chan Status) {
 
 	defer w.Close()
@@ -59,7 +64,7 @@ func recvTransport(socks <-chan net.Conn, w io.WriteCloser,
 	for {
 		select {
 		case stat := <-status:
-			if stat == StatusShutdown {
+			if stat.fatal() {
 				return
 			}
 
@@ -78,26 +83,32 @@ func recvTransport(socks <-chan net.Conn, w io.WriteCloser,
 						continue
 					}
 				}
-				Warn.Logf("recvTransport: %s", err)
+				cl.setError(fmt.Errorf("recv: %v", err))
 				return
+			}
+			if Debug {
+				log.Printf("recv: %s", p[:nr])
 			}
 			nw, err := w.Write(p[:nr])
 			if nw < nr {
-				Warn.Logf("recvTransport: %s", err)
+				cl.setError(fmt.Errorf("recv: %v", err))
 				return
 			}
 		}
 	}
 }
 
-func sendTransport(socks <-chan net.Conn, r io.Reader) {
+func (cl *Client) sendTransport(socks <-chan net.Conn, r io.Reader) {
 	var sock net.Conn
 	p := make([]byte, 1024)
 	for {
 		nr, err := r.Read(p)
 		if nr == 0 {
-			Warn.Logf("sendTransport: %s", err)
+			cl.setError(fmt.Errorf("send: %v", err))
 			break
+		}
+		if nr > 0 && Debug {
+			log.Printf("send: %s", p[:nr])
 		}
 		for nr > 0 {
 			select {
@@ -114,7 +125,7 @@ func sendTransport(socks <-chan net.Conn, r io.Reader) {
 				nw, err := sock.Write(p[:nr])
 				nr -= nw
 				if nr != 0 {
-					Warn.Logf("write: %s", err)
+					cl.setError(fmt.Errorf("send: %v", err))
 					break
 				}
 			}

@@ -4,7 +4,3 @@ probably either all be receivers, or none.
 Add a Reconnect() function.
 
 Eliminate as many uses of Generic as possible.
-
-Get rid of logging. We're providing status updates. Include an error()
-receiver function that lets internals report their errors for return
-from NewClient().

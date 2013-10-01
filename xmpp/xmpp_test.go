@@ -13,7 +13,8 @@ func TestReadError(t *testing.T) {
 	r := strings.NewReader(`<stream:error><bad-foo xmlns="blah"/>` +
 		`</stream:error>`)
 	ch := make(chan interface{})
-	go recvXml(r, ch, make(map[xml.Name]reflect.Type))
+	cl := &Client{}
+	go cl.recvXml(r, ch, make(map[xml.Name]reflect.Type))
 	x := <-ch
 	se, ok := x.(*streamError)
 	if !ok {
@@ -29,7 +30,7 @@ func TestReadError(t *testing.T) {
 		`<text xml:lang="en" xmlns="` + NsStreams +
 		`">Error text</text></stream:error>`)
 	ch = make(chan interface{})
-	go recvXml(r, ch, make(map[xml.Name]reflect.Type))
+	go cl.recvXml(r, ch, make(map[xml.Name]reflect.Type))
 	x = <-ch
 	se, ok = x.(*streamError)
 	if !ok {
@@ -47,7 +48,8 @@ func TestReadStream(t *testing.T) {
 		`xmlns="` + NsClient + `" xmlns:stream="` + NsStream +
 		`" version="1.0">`)
 	ch := make(chan interface{})
-	go recvXml(r, ch, make(map[xml.Name]reflect.Type))
+	cl := &Client{}
+	go cl.recvXml(r, ch, make(map[xml.Name]reflect.Type))
 	x := <-ch
 	ss, ok := x.(*stream)
 	if !ok {
@@ -64,9 +66,10 @@ func testWrite(obj interface{}) string {
 	ch := make(chan interface{})
 	var wg sync.WaitGroup
 	wg.Add(1)
+	cl := &Client{}
 	go func() {
 		defer wg.Done()
-		sendXml(w, ch)
+		cl.sendXml(w, ch)
 	}()
 	ch <- obj
 	close(ch)

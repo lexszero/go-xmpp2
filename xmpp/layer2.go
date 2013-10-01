@@ -7,19 +7,16 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io"
+	"log"
 	"reflect"
 	"strings"
 )
 
 // Read bytes from a reader, unmarshal them as XML into structures of
 // the appropriate type, and send those structures on a channel.
-func recvXml(r io.Reader, ch chan<- interface{},
+func (cl *Client) recvXml(r io.Reader, ch chan<- interface{},
 	extStanza map[xml.Name]reflect.Type) {
-	if _, ok := Debug.(*noLog); !ok {
-		pr, pw := io.Pipe()
-		go tee(r, pw, "S: ")
-		r = pr
-	}
+
 	defer close(ch)
 
 	// This trick loads our namespaces into the parser.
@@ -35,7 +32,7 @@ Loop:
 		t, err := p.Token()
 		if t == nil {
 			if err != io.EOF {
-				Warn.Logf("read: %s", err)
+				cl.setError(fmt.Errorf("recv: %v", err))
 			}
 			break
 		}
@@ -51,7 +48,7 @@ Loop:
 		case NsStream + " stream":
 			st, err := parseStream(se)
 			if err != nil {
-				Warn.Logf("unmarshal stream: %s", err)
+				cl.setError(fmt.Errorf("recv: %v", err))
 				break Loop
 			}
 			ch <- st
@@ -73,14 +70,16 @@ Loop:
 			obj = &Presence{}
 		default:
 			obj = &Generic{}
-			Info.Logf("Ignoring unrecognized: %s %s", se.Name.Space,
-				se.Name.Local)
+			if Debug {
+				log.Printf("Ignoring unrecognized: %s %s",
+					se.Name.Space, se.Name.Local)
+			}
 		}
 
 		// Read the complete XML stanza.
 		err = p.DecodeElement(obj, &se)
 		if err != nil {
-			Warn.Logf("unmarshal: %s", err)
+			cl.setError(fmt.Errorf("recv: %v", err))
 			break Loop
 		}
 
@@ -90,7 +89,7 @@ Loop:
 		if st, ok := obj.(Stanza); ok {
 			err = parseExtended(st.GetHeader(), extStanza)
 			if err != nil {
-				Warn.Logf("ext unmarshal: %s", err)
+				cl.setError(fmt.Errorf("recv: %v", err))
 				break Loop
 			}
 		}
@@ -133,12 +132,7 @@ func parseExtended(st *Header, extStanza map[xml.Name]reflect.Type) error {
 
 // Receive structures on a channel, marshal them to XML, and send the
 // bytes on a writer.
-func sendXml(w io.Writer, ch <-chan interface{}) {
-	if _, ok := Debug.(*noLog); !ok {
-		pr, pw := io.Pipe()
-		go tee(pr, w, "C: ")
-		w = pw
-	}
+func (cl *Client) sendXml(w io.Writer, ch <-chan interface{}) {
 	defer func(w io.Writer) {
 		if c, ok := w.(io.Closer); ok {
 			c.Close()
@@ -151,12 +145,13 @@ func sendXml(w io.Writer, ch <-chan interface{}) {
 		if st, ok := obj.(*stream); ok {
 			_, err := w.Write([]byte(st.String()))
 			if err != nil {
-				Warn.Logf("write: %s", err)
+				cl.setError(fmt.Errorf("send: %v", err))
+				break
 			}
 		} else {
 			err := enc.Encode(obj)
 			if err != nil {
-				Warn.Logf("marshal: %s", err)
+				cl.setError(fmt.Errorf("send: %v", err))
 				break
 			}
 		}

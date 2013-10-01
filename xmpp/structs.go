@@ -7,12 +7,14 @@ import (
 	"encoding/xml"
 	"flag"
 	"fmt"
-	// BUG(cjyar): Doesn't use stringprep. Could try the implementation at
-	// "code.google.com/p/go-idn/src/stringprep"
+	"log"
 	"reflect"
 	"regexp"
 	"strings"
 )
+
+// BUG(cjyar): Doesn't use stringprep. Could try the implementation at
+// "code.google.com/p/go-idn/src/stringprep"
 
 // JID represents an entity that can communicate with other
 // entities. It looks like node@domain/resource. Node and resource are
@@ -260,7 +262,7 @@ func (u *Generic) String() string {
 func (er *Error) Error() string {
 	buf, err := xml.Marshal(er)
 	if err != nil {
-		Warn.Log("double bad error: couldn't marshal error")
+		log.Println("double bad error: couldn't marshal error")
 		return "unreadable error"
 	}
 	return string(buf)
