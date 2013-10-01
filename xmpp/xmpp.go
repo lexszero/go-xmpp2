@@ -294,8 +294,9 @@ func (cl *Client) getError(err1 error) error {
 // there's already an error in the channel, discard the newer one in
 // favor of the older.
 func (cl *Client) setError(err error) {
-	cl.Close()
-	cl.setStatus(StatusError)
+	defer cl.Close()
+	defer cl.setStatus(StatusError)
+
 	if len(cl.error) > 0 {
 		return
 	}
