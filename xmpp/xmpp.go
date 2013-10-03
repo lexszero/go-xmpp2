@@ -34,51 +34,6 @@ const (
 	clientSrv = "xmpp-client"
 )
 
-// Status of the connection.
-type Status int
-
-const (
-	statusUnconnected = iota
-	statusConnected
-	statusConnectedTls
-	statusAuthenticated
-	statusBound
-	statusRunning
-	statusShutdown
-	statusError
-)
-
-var (
-	// The client has not yet connected, or it has been
-	// disconnected from the server.
-	StatusUnconnected Status = statusUnconnected
-	// Initial connection established.
-	StatusConnected Status = statusConnected
-	// Like StatusConnected, but with TLS.
-	StatusConnectedTls Status = statusConnectedTls
-	// Authentication succeeded.
-	StatusAuthenticated Status = statusAuthenticated
-	// Resource binding complete.
-	StatusBound Status = statusBound
-	// Session has started and normal message traffic can be sent
-	// and received.
-	StatusRunning Status = statusRunning
-	// The session has closed, or is in the process of closing.
-	StatusShutdown Status = statusShutdown
-	// The session has encountered an error. Otherwise identical
-	// to StatusShutdown.
-	StatusError Status = statusError
-)
-
-func (s Status) fatal() bool {
-	switch s {
-	default:
-		return false
-	case StatusShutdown, StatusError:
-		return true
-	}
-}
-
 // A filter can modify the XMPP traffic to or from the remote
 // server. It's part of an Extension. The filter function will be
 // called in a new goroutine, so it doesn't need to return. The filter
