@@ -67,7 +67,8 @@ type Client struct {
 	// set up the XMPP stream will not appear here.
 	Recv <-chan Stanza
 	// Outgoing XMPP stanzas to the server should be sent to this
-	// channel.
+	// channel. The application should not close this channel;
+	// rather, call Close().
 	Send    chan<- Stanza
 	sendRaw chan<- interface{}
 	statmgr *statmgr
@@ -232,11 +233,7 @@ func (cl *Client) Close() {
 	cl.setStatus(StatusShutdown)
 
 	// Shuts down the senders:
-	select {
-	case cl.Send <- &Iq{}:
-		close(cl.Send)
-	default:
-	}
+	cl.shutdownOnce.Do(func() { close(cl.Send) })
 }
 
 // If there's a buffered error in the channel, return it. Otherwise,
@@ -256,11 +253,8 @@ func (cl *Client) getError(err1 error) error {
 // there's already an error in the channel, discard the newer one in
 // favor of the older.
 func (cl *Client) setError(err error) {
-	shutdown := func() {
-		cl.setStatus(StatusError)
-		cl.Close()
-	}
-	defer cl.shutdownOnce.Do(shutdown)
+	defer cl.Close()
+	defer cl.setStatus(StatusError)
 
 	if len(cl.error) > 0 {
 		return
