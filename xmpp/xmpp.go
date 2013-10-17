@@ -230,8 +230,13 @@ func NewClient(jid *JID, password string, tlsconf tls.Config, exts []Extension,
 func (cl *Client) Close() {
 	// Shuts down the receivers:
 	cl.setStatus(StatusShutdown)
+
 	// Shuts down the senders:
-	close(cl.Send)
+	select {
+	case cl.Send <- &Iq{}:
+		close(cl.Send)
+	default:
+	}
 }
 
 // If there's a buffered error in the channel, return it. Otherwise,
