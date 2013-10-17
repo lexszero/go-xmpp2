@@ -42,7 +42,9 @@ var (
 	StatusError Status = statusError
 )
 
-func (s Status) fatal() bool {
+// Does the status value indicate that the client is or has
+// disconnected?
+func (s Status) Fatal() bool {
 	switch s {
 	default:
 		return false
@@ -135,7 +137,7 @@ func (s *statmgr) awaitStatus(waitFor Status) error {
 		if current == waitFor {
 			return nil
 		}
-		if current.fatal() {
+		if current.Fatal() {
 			break
 		}
 		if current > waitFor {
