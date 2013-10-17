@@ -13,6 +13,7 @@ import (
 	"io"
 	"net"
 	"reflect"
+	"sync"
 )
 
 const (
@@ -80,6 +81,7 @@ type Client struct {
 	tlsConfig                    tls.Config
 	layer1                       *layer1
 	error                        chan error
+	shutdownOnce                 sync.Once
 }
 
 // Creates an XMPP client identified by the given JID, authenticating
@@ -249,8 +251,11 @@ func (cl *Client) getError(err1 error) error {
 // there's already an error in the channel, discard the newer one in
 // favor of the older.
 func (cl *Client) setError(err error) {
-	defer cl.Close()
-	defer cl.setStatus(StatusError)
+	shutdown := func() {
+		cl.setStatus(StatusError)
+		cl.Close()
+	}
+	defer cl.shutdownOnce.Do(shutdown)
 
 	if len(cl.error) > 0 {
 		return
