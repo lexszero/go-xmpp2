@@ -98,9 +98,9 @@ type Header struct {
 type Message struct {
 	XMLName xml.Name `xml:"jabber:client message"`
 	Header
-	Subject *Generic `xml:"jabber:client subject"`
-	Body    *Generic `xml:"jabber:client body"`
-	Thread  *Generic `xml:"jabber:client thread"`
+	Subject []Text   `xml:"jabber:client subject"`
+	Body    []Text   `xml:"jabber:client body"`
+	Thread  *Data  `xml:"jabber:client thread"`
 }
 
 var _ Stanza = &Message{}
@@ -109,9 +109,9 @@ var _ Stanza = &Message{}
 type Presence struct {
 	XMLName xml.Name `xml:"presence"`
 	Header
-	Show     *Generic `xml:"jabber:client show"`
-	Status   *Generic `xml:"jabber:client status"`
-	Priority *Generic `xml:"jabber:client priority"`
+	Show     *Data   `xml:"jabber:client show"`
+	Status   []Text  `xml:"jabber:client status"`
+	Priority *Data   `xml:"jabber:client priority"`
 }
 
 var _ Stanza = &Presence{}
@@ -140,6 +140,22 @@ type bindIq struct {
 	XMLName  xml.Name `xml:"urn:ietf:params:xml:ns:xmpp-bind bind"`
 	Resource *string  `xml:"resource"`
 	Jid      *string  `xml:"jid"`
+}
+
+// Holds human-readable text, with an optional language
+// specification. Generally multiple instances of these can be found
+// together, allowing the software to choose which language to present
+// to the user.
+type Text struct {
+	XMLName xml.Name
+	Lang     string `xml:"http://www.w3.org/XML/1998/namespace lang,attr,omitempty"`
+	Chardata string `xml:",chardata"`
+}
+
+// Non-human-readable content of some sort, used by the protocol.
+type Data struct {
+	XMLName xml.Name
+	Chardata string `xml:",chardata"`
 }
 
 // Holds an XML element not described by the more specific types.

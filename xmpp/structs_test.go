@@ -108,8 +108,8 @@ func TestIqMarshal(t *testing.T) {
 }
 
 func TestMarshalEscaping(t *testing.T) {
-	msg := &Message{Body: &Generic{XMLName: xml.Name{Local: "body"},
-		Chardata: `&<!-- "`}}
+	msg := &Message{Body: []Text{Text{XMLName: xml.Name{Local: "body"},
+		Chardata: `&<!-- "`}}}
 	exp := `<message xmlns="jabber:client"><body>&amp;&lt;!-- &#34;</body></message>`
 	assertMarshal(t, exp, msg)
 }
@@ -123,8 +123,8 @@ func TestUnmarshalMessage(t *testing.T) {
 	obs := <-ch
 	exp := &Message{XMLName: xml.Name{Local: "message", Space: "jabber:client"},
 		Header: Header{To: "a@b.c", Innerxml: "<body>foo!</body>"},
-		Body: &Generic{XMLName: xml.Name{Local: "body", Space: "jabber:client"},
-			Chardata: "foo!"}}
+		Body: []Text{Text{XMLName: xml.Name{Local: "body", Space: "jabber:client"},
+			Chardata: "foo!"}}}
 	if !reflect.DeepEqual(obs, exp) {
 		t.Errorf("read %s\ngot:  %#v\nwant: %#v\n", str, obs, exp)
 	}
