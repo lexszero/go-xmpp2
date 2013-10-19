@@ -2,5 +2,3 @@ Review all the *Client receiver methods in layer3.go. They should
 probably either all be receivers, or none.
 
 Add a Reconnect() function.
-
-Eliminate as many uses of Generic as possible.
