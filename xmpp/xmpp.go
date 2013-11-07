@@ -89,33 +89,6 @@ type Client struct {
 func NewClient(jid *JID, password string, tlsconf tls.Config, exts []Extension,
 	pr Presence, status chan<- Status) (*Client, error) {
 
-	// Include the mandatory extensions.
-	roster := newRosterExt()
-	exts = append(exts, roster.Extension)
-	exts = append(exts, bindExt)
-
-	cl := new(Client)
-	cl.Roster = *roster
-	cl.password = password
-	cl.Jid = *jid
-	cl.handlers = make(chan *callback, 100)
-	cl.tlsConfig = tlsconf
-	cl.sendFilterAdd = make(chan Filter)
-	cl.recvFilterAdd = make(chan Filter)
-	cl.statmgr = newStatmgr(status)
-	cl.error = make(chan error, 1)
-
-	extStanza := make(map[xml.Name]reflect.Type)
-	for _, ext := range exts {
-		for k, v := range ext.StanzaTypes {
-			if _, ok := extStanza[k]; ok {
-				return nil, fmt.Errorf("duplicate handler %s",
-					k)
-			}
-			extStanza[k] = v
-		}
-	}
-
 	// Resolve the domain in the JID.
 	_, srvs, err := net.LookupSRV(clientSrv, "tcp", jid.Domain)
 	if err != nil {
@@ -143,6 +116,61 @@ func NewClient(jid *JID, password string, tlsconf tls.Config, exts []Extension,
 	if tcp == nil {
 		return nil, err
 	}
+
+	return newClient(tcp, jid, password, tlsconf, exts, pr, status)
+}
+
+// Connect to the specified host and port. This is otherwise identical
+// to NewClient.
+func NewClientFromHost(jid *JID, password string, tlsconf tls.Config,
+	exts []Extension, pr Presence, status chan<- Status, host string,
+	port int) (*Client, error) {
+
+	addrStr := fmt.Sprintf("%s:%d", host, port)
+	addr, err := net.ResolveTCPAddr("tcp", addrStr)
+	if err != nil {
+		return nil, err
+	}
+	tcp, err := net.DialTCP("tcp", nil, addr)
+	if err != nil {
+		return nil, err
+	}
+
+	return newClient(tcp, jid, password, tlsconf, exts, pr, status)
+}
+
+func newClient(tcp *net.TCPConn, jid *JID, password string, tlsconf tls.Config,
+	exts []Extension, pr Presence, status chan<- Status) (*Client, error) {
+
+	// Include the mandatory extensions.
+	roster := newRosterExt()
+	exts = append(exts, roster.Extension)
+	exts = append(exts, bindExt)
+
+	cl := new(Client)
+	cl.Roster = *roster
+	cl.password = password
+	cl.Jid = *jid
+	cl.handlers = make(chan *callback, 100)
+	cl.tlsConfig = tlsconf
+	cl.sendFilterAdd = make(chan Filter)
+	cl.recvFilterAdd = make(chan Filter)
+	cl.statmgr = newStatmgr(status)
+	cl.error = make(chan error, 1)
+
+	extStanza := make(map[xml.Name]reflect.Type)
+	for _, ext := range exts {
+		for k, v := range ext.StanzaTypes {
+			if _, ok := extStanza[k]; ok {
+				return nil, fmt.Errorf("duplicate handler %s",
+					k)
+			}
+			extStanza[k] = v
+		}
+	}
+
+	// The thing that called this made a TCP connection, so now we
+	// can signal that it's connected.
 	cl.setStatus(StatusConnected)
 
 	// Start the transport handler, initially unencrypted.
