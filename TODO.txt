@@ -1,0 +1,5 @@
+Make JID a string type, with receiver functions to get its
+pieces. This way it can be used as a key in a map.
+
+Don't force the client to understand the RFCs. Keep message types in a
+convenient set of constants, for example.
