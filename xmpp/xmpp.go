@@ -13,6 +13,7 @@ import (
 	"io"
 	"net"
 	"reflect"
+	"sync"
 )
 
 const (
@@ -66,7 +67,8 @@ type Client struct {
 	// set up the XMPP stream will not appear here.
 	Recv <-chan Stanza
 	// Outgoing XMPP stanzas to the server should be sent to this
-	// channel.
+	// channel. The application should not close this channel;
+	// rather, call Close().
 	Send    chan<- Stanza
 	sendRaw chan<- interface{}
 	statmgr *statmgr
@@ -80,6 +82,7 @@ type Client struct {
 	tlsConfig                    tls.Config
 	layer1                       *layer1
 	error                        chan error
+	shutdownOnce                 sync.Once
 }
 
 // Creates an XMPP client identified by the given JID, authenticating
@@ -256,8 +259,9 @@ func newClient(tcp *net.TCPConn, jid *JID, password string, tlsconf tls.Config,
 func (cl *Client) Close() {
 	// Shuts down the receivers:
 	cl.setStatus(StatusShutdown)
+
 	// Shuts down the senders:
-	close(cl.Send)
+	cl.shutdownOnce.Do(func() { close(cl.Send) })
 }
 
 // If there's a buffered error in the channel, return it. Otherwise,

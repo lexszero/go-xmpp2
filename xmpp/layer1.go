@@ -64,7 +64,7 @@ func (cl *Client) recvTransport(socks <-chan net.Conn, w io.WriteCloser,
 	for {
 		select {
 		case stat := <-status:
-			if stat.fatal() {
+			if stat.Fatal() {
 				return
 			}
 
