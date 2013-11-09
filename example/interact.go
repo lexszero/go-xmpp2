@@ -18,11 +18,11 @@ func init() {
 // Demonstrate the API, and allow the user to interact with an XMPP
 // server via the terminal.
 func main() {
-	var jid xmpp.JID
-	flag.Var(&jid, "jid", "JID to log in as")
-	var pw *string = flag.String("pw", "", "password")
+	jidStr := flag.String("jid", "", "JID to log in as")
+	pw := flag.String("pw", "", "password")
 	flag.Parse()
-	if jid.Domain == "" || *pw == "" {
+	jid := xmpp.JID(*jidStr)
+	if jid.Domain() == "" || *pw == "" {
 		flag.Usage()
 		os.Exit(2)
 	}

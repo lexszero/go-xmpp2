@@ -136,12 +136,12 @@ func (cl *Client) handleTls(t *starttls) {
 
 	// Now re-send the initial handshake message to start the new
 	// session.
-	cl.sendRaw <- &stream{To: cl.Jid.Domain, Version: XMPPVersion}
+	cl.sendRaw <- &stream{To: cl.Jid.Domain(), Version: XMPPVersion}
 }
 
 // Send a request to bind a resource. RFC 3920, section 7.
 func (cl *Client) bind() {
-	res := cl.Jid.Resource
+	res := cl.Jid.Resource()
 	bindReq := &bindIq{}
 	if res != "" {
 		bindReq.Resource = &res
@@ -170,19 +170,13 @@ func (cl *Client) bind() {
 			cl.setError(fmt.Errorf("Bad bind reply: %#v", iq))
 			return
 		}
-		jidStr := bindRepl.Jid
-		if jidStr == nil || *jidStr == "" {
+		jid := bindRepl.Jid
+		if jid == nil || *jid == "" {
 			cl.setError(fmt.Errorf("empty resource in bind %#v",
 				iq))
 			return
 		}
-		jid := new(JID)
-		if err := jid.Set(*jidStr); err != nil {
-			cl.setError(fmt.Errorf("bind: an't parse JID %s: %v",
-				*jidStr, err))
-			return
-		}
-		cl.Jid = *jid
+		cl.Jid = JID(*jid)
 		cl.setStatus(StatusBound)
 	}
 	cl.SetCallback(msg.Id, f)

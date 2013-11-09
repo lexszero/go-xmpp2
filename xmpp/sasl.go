@@ -54,7 +54,7 @@ func (cl *Client) handleSasl(srv *auth) {
 	case "success":
 		cl.setStatus(StatusAuthenticated)
 		cl.Features = nil
-		ss := &stream{To: cl.Jid.Domain, Version: XMPPVersion}
+		ss := &stream{To: cl.Jid.Domain(), Version: XMPPVersion}
 		cl.sendRaw <- ss
 	}
 }
@@ -80,17 +80,17 @@ func (cl *Client) saslDigest1(srvMap map[string]string) {
 
 	passwd := cl.password
 	nonce := srvMap["nonce"]
-	digestUri := "xmpp/" + cl.Jid.Domain
+	digestUri := "xmpp/" + cl.Jid.Domain()
 	nonceCount := int32(1)
 	nonceCountStr := fmt.Sprintf("%08x", nonceCount)
 
 	// Begin building the response. Username is
 	// user@domain or just domain.
 	var username string
-	if cl.Jid.Node == "" {
-		username = cl.Jid.Domain
+	if cl.Jid.Node() == "" {
+		username = cl.Jid.Domain()
 	} else {
-		username = cl.Jid.Node
+		username = cl.Jid.Node()
 	}
 
 	// Generate our own nonce from random data.

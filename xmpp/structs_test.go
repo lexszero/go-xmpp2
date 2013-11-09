@@ -23,28 +23,19 @@ func assertEquals(t *testing.T, expected, observed string) {
 }
 
 func TestJid(t *testing.T) {
-	str := "user@domain/res"
-	jid := &JID{}
-	if err := jid.Set(str); err != nil {
-		t.Errorf("Set(%s) failed: %s", str, err)
-	}
-	assertEquals(t, "user", jid.Node)
-	assertEquals(t, "domain", jid.Domain)
-	assertEquals(t, "res", jid.Resource)
-	assertEquals(t, str, jid.String())
+	jid := JID("user@domain/res")
+	assertEquals(t, "user", jid.Node())
+	assertEquals(t, "domain", jid.Domain())
+	assertEquals(t, "res", jid.Resource())
 
-	str = "domain.tld"
-	if err := jid.Set(str); err != nil {
-		t.Errorf("Set(%s) failed: %s", str, err)
+	jid = "domain.tld"
+	if jid.Node() != "" {
+		t.Errorf("Node: %v\n", jid.Node())
 	}
-	if jid.Node != "" {
-		t.Errorf("Node: %v\n", jid.Node)
+	assertEquals(t, "domain.tld", jid.Domain())
+	if jid.Resource() != "" {
+		t.Errorf("Resource: %v\n", jid.Resource())
 	}
-	assertEquals(t, "domain.tld", jid.Domain)
-	if jid.Resource != "" {
-		t.Errorf("Resource: %v\n", jid.Resource)
-	}
-	assertEquals(t, str, jid.String())
 }
 
 func assertMarshal(t *testing.T, expected string, marshal interface{}) {
