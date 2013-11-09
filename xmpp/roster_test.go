@@ -49,5 +49,5 @@ func TestRosterIqUnmarshal(t *testing.T) {
 		t.Fatalf("Wrong # items: %v", rq.Item)
 	}
 	item := rq.Item[0]
-	assertEquals(t, "a@b.c", item.Jid)
+	assertEquals(t, "a@b.c", string(item.Jid))
 }
