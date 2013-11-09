@@ -29,7 +29,7 @@ func TestRosterIqUnmarshal(t *testing.T) {
 		t.Fatalf("parseExtended: %v", err)
 	}
 	assertEquals(t, "iq", iq.XMLName.Local)
-	assertEquals(t, "from", iq.From)
+	assertEquals(t, "from", string(iq.From))
 	assertEquals(t, "en", iq.Lang)
 	nested := iq.Nested
 	if nested == nil {
