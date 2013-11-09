@@ -16,7 +16,7 @@ type RosterQuery struct {
 // See RFC 3921, Section 7.1.
 type RosterItem struct {
 	XMLName      xml.Name `xml:"jabber:iq:roster item"`
-	Jid          string   `xml:"jid,attr"`
+	Jid          JID      `xml:"jid,attr"`
 	Subscription string   `xml:"subscription,attr"`
 	Name         string   `xml:"name,attr"`
 	Group        []string
@@ -34,7 +34,7 @@ type rosterClient struct {
 }
 
 func (r *Roster) rosterMgr(upd <-chan Stanza) {
-	roster := make(map[string]RosterItem)
+	roster := make(map[JID]RosterItem)
 	var snapshot []RosterItem
 	var get chan<- []RosterItem
 	for {
