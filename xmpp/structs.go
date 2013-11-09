@@ -75,8 +75,8 @@ type Stanza interface {
 // One of the three core XMPP stanza types: iq, message, presence. See
 // RFC3920, section 9.
 type Header struct {
-	To       string `xml:"to,attr,omitempty"`
-	From     string `xml:"from,attr,omitempty"`
+	To       JID    `xml:"to,attr,omitempty"`
+	From     JID    `xml:"from,attr,omitempty"`
 	Id       string `xml:"id,attr,omitempty"`
 	Type     string `xml:"type,attr,omitempty"`
 	Lang     string `xml:"http://www.w3.org/XML/1998/namespace lang,attr,omitempty"`
@@ -130,7 +130,7 @@ var _ error = &Error{}
 type bindIq struct {
 	XMLName  xml.Name `xml:"urn:ietf:params:xml:ns:xmpp-bind bind"`
 	Resource *string  `xml:"resource"`
-	Jid      *string  `xml:"jid"`
+	Jid      *JID     `xml:"jid"`
 }
 
 // Holds human-readable text, with an optional language

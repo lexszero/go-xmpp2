@@ -224,7 +224,7 @@ func newClient(tcp *net.TCPConn, jid *JID, password string, tlsconf tls.Config,
 
 	// Initialize the session.
 	id := NextId()
-	iq := &Iq{Header: Header{To: cl.Jid.Domain(), Id: id, Type: "set",
+	iq := &Iq{Header: Header{To: JID(cl.Jid.Domain()), Id: id, Type: "set",
 		Nested: []interface{}{Generic{XMLName: xml.Name{Space: NsSession, Local: "session"}}}}}
 	ch := make(chan error)
 	f := func(st Stanza) {
