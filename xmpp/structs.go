@@ -183,6 +183,15 @@ func (j JID) Resource() string {
 	return string(j[slash+1:])
 }
 
+// Returns the bare JID, which is the JID without the resource part.
+func (j JID) Bare() JID {
+	node := j.Node()
+	if node == "" {
+		return JID(j.Domain())
+	}
+	return JID(fmt.Sprintf("%s@%s", node, j.Domain()))
+}
+
 func (s *stream) String() string {
 	var buf bytes.Buffer
 	buf.WriteString(`<stream:stream xmlns="`)
