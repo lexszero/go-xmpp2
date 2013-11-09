@@ -5,11 +5,9 @@ package xmpp
 import (
 	"bytes"
 	"encoding/xml"
-	"flag"
 	"fmt"
 	"log"
 	"reflect"
-	"regexp"
 	"strings"
 )
 
@@ -19,14 +17,7 @@ import (
 // JID represents an entity that can communicate with other
 // entities. It looks like node@domain/resource. Node and resource are
 // sometimes optional.
-type JID struct {
-	Node     string
-	Domain   string
-	Resource string
-}
-
-var _ fmt.Stringer = &JID{}
-var _ flag.Value = &JID{}
+type JID string
 
 // XMPP's <stream:stream> XML element
 type stream struct {
@@ -98,8 +89,8 @@ type Header struct {
 type Message struct {
 	XMLName xml.Name `xml:"jabber:client message"`
 	Header
-	Subject []Text   `xml:"jabber:client subject"`
-	Body    []Text   `xml:"jabber:client body"`
+	Subject []Text `xml:"jabber:client subject"`
+	Body    []Text `xml:"jabber:client body"`
 	Thread  *Data  `xml:"jabber:client thread"`
 }
 
@@ -109,9 +100,9 @@ var _ Stanza = &Message{}
 type Presence struct {
 	XMLName xml.Name `xml:"presence"`
 	Header
-	Show     *Data   `xml:"jabber:client show"`
-	Status   []Text  `xml:"jabber:client status"`
-	Priority *Data   `xml:"jabber:client priority"`
+	Show     *Data  `xml:"jabber:client show"`
+	Status   []Text `xml:"jabber:client status"`
+	Priority *Data  `xml:"jabber:client priority"`
 }
 
 var _ Stanza = &Presence{}
@@ -147,14 +138,14 @@ type bindIq struct {
 // together, allowing the software to choose which language to present
 // to the user.
 type Text struct {
-	XMLName xml.Name
+	XMLName  xml.Name
 	Lang     string `xml:"http://www.w3.org/XML/1998/namespace lang,attr,omitempty"`
 	Chardata string `xml:",chardata"`
 }
 
 // Non-human-readable content of some sort, used by the protocol.
 type Data struct {
-	XMLName xml.Name
+	XMLName  xml.Name
 	Chardata string `xml:",chardata"`
 }
 
@@ -167,31 +158,29 @@ type Generic struct {
 
 var _ fmt.Stringer = &Generic{}
 
-func (jid *JID) String() string {
-	result := jid.Domain
-	if jid.Node != "" {
-		result = jid.Node + "@" + result
+func (j JID) Node() string {
+	at := strings.Index(string(j), "@")
+	if at == -1 {
+		return ""
 	}
-	if jid.Resource != "" {
-		result = result + "/" + jid.Resource
-	}
-	return result
+	return string(j[:at])
 }
 
-// Set implements flag.Value.
-func (jid *JID) Set(val string) error {
-	r := regexp.MustCompile("^(([^@/]+)@)?([^@/]+)(/([^@/]+))?$")
-	parts := r.FindStringSubmatch(val)
-	if parts == nil {
-		return fmt.Errorf("%s doesn't match user@domain/resource", val)
+func (j JID) Domain() string {
+	at := strings.Index(string(j), "@")
+	slash := strings.LastIndex(string(j), "/")
+	if slash == -1 {
+		slash = len(j)
 	}
-	// jid.Node = stringprep.Nodeprep(parts[2])
-	// jid.Domain = stringprep.Nodeprep(parts[3])
-	// jid.Resource = stringprep.Resourceprep(parts[5])
-	jid.Node = parts[2]
-	jid.Domain = parts[3]
-	jid.Resource = parts[5]
-	return nil
+	return string(j[at+1 : slash])
+}
+
+func (j JID) Resource() string {
+	slash := strings.LastIndex(string(j), "/")
+	if slash == -1 {
+		return ""
+	}
+	return string(j[slash+1:])
 }
 
 func (s *stream) String() string {

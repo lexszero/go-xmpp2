@@ -93,7 +93,7 @@ func NewClient(jid *JID, password string, tlsconf tls.Config, exts []Extension,
 	pr Presence, status chan<- Status) (*Client, error) {
 
 	// Resolve the domain in the JID.
-	_, srvs, err := net.LookupSRV(clientSrv, "tcp", jid.Domain)
+	_, srvs, err := net.LookupSRV(clientSrv, "tcp", jid.Domain())
 	if err != nil {
 		return nil, fmt.Errorf("LookupSrv %s: %v", jid.Domain, err)
 	}
@@ -211,7 +211,7 @@ func newClient(tcp *net.TCPConn, jid *JID, password string, tlsconf tls.Config,
 	}
 
 	// Initial handshake.
-	hsOut := &stream{To: jid.Domain, Version: XMPPVersion}
+	hsOut := &stream{To: jid.Domain(), Version: XMPPVersion}
 	cl.sendRaw <- hsOut
 
 	// Wait until resource binding is complete.
@@ -224,7 +224,7 @@ func newClient(tcp *net.TCPConn, jid *JID, password string, tlsconf tls.Config,
 
 	// Initialize the session.
 	id := NextId()
-	iq := &Iq{Header: Header{To: cl.Jid.Domain, Id: id, Type: "set",
+	iq := &Iq{Header: Header{To: cl.Jid.Domain(), Id: id, Type: "set",
 		Nested: []interface{}{Generic{XMLName: xml.Name{Space: NsSession, Local: "session"}}}}}
 	ch := make(chan error)
 	f := func(st Stanza) {
