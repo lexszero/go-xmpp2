@@ -12,3 +12,8 @@ support is here.
 An simple client using this library is in the example directory. A
 more interesting example can be found at
 https://cjones.org/hg/foosfiend.
+
+This software is written by Chris Jones <chris@cjones.org>. If you use
+it, I'd appreciate a note letting me know. Bug reports are
+welcome. The license is in LICENSE.txt; it's a BSD 2-Clause license
+from http://opensource.org/licenses/BSD-2-Clause.
