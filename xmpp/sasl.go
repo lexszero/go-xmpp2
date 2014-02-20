@@ -17,11 +17,15 @@ import (
 // respond.
 // BUG(cjyar): Doesn't implement TLS/SASL EXTERNAL.
 func (cl *Client) chooseSasl(fe *Features) {
-	var digestMd5 bool
+	var digestMd5, plain bool
+	var mechs []string
 	for _, m := range fe.Mechanisms.Mechanism {
+		mechs = append(mechs, m)
 		switch strings.ToLower(m) {
 		case "digest-md5":
 			digestMd5 = true
+		case "plain":
+			plain = true
 		}
 	}
 
@@ -29,6 +33,15 @@ func (cl *Client) chooseSasl(fe *Features) {
 		auth := &auth{XMLName: xml.Name{Space: NsSASL, Local: "auth"},
 			Mechanism: "DIGEST-MD5"}
 		cl.sendRaw <- auth
+	} else if plain {
+		raw := "\x00" + cl.Jid.Node() + "\x00" + cl.password
+		enc := base64.StdEncoding.EncodeToString([]byte(raw))
+		auth := &auth{XMLName: xml.Name{Space: NsSASL, Local: "auth"},
+			Mechanism: "PLAIN", Chardata: enc}
+		cl.sendRaw <- auth
+	} else {
+		cl.setError(fmt.Errorf("No supported auth mechanism in %v",
+			mechs))
 	}
 }
 
