@@ -63,7 +63,12 @@ func (r *Roster) rosterMgr(upd <-chan Stanza) {
 				continue
 			}
 			for _, item := range rq.Item {
-				roster[item.Jid] = item
+				switch item.Subscription {
+				case "none", "from", "to", "both":
+					roster[item.Jid] = item
+				case "remove":
+					delete(roster, item.Jid)
+				}
 			}
 			snapshot = []RosterItem{}
 			for _, ri := range roster {
