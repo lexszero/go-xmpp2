@@ -98,8 +98,8 @@ type Header struct {
 type Message struct {
 	XMLName xml.Name `xml:"jabber:client message"`
 	Header
-	Subject []Text   `xml:"jabber:client subject"`
-	Body    []Text   `xml:"jabber:client body"`
+	Subject []Text `xml:"jabber:client subject"`
+	Body    []Text `xml:"jabber:client body"`
 	Thread  *Data  `xml:"jabber:client thread"`
 }
 
@@ -109,9 +109,9 @@ var _ Stanza = &Message{}
 type Presence struct {
 	XMLName xml.Name `xml:"presence"`
 	Header
-	Show     *Data   `xml:"jabber:client show"`
-	Status   []Text  `xml:"jabber:client status"`
-	Priority *Data   `xml:"jabber:client priority"`
+	Show     *Data  `xml:"jabber:client show"`
+	Status   []Text `xml:"jabber:client status"`
+	Priority *Data  `xml:"jabber:client priority"`
 }
 
 var _ Stanza = &Presence{}
@@ -147,14 +147,14 @@ type bindIq struct {
 // together, allowing the software to choose which language to present
 // to the user.
 type Text struct {
-	XMLName xml.Name
+	XMLName  xml.Name
 	Lang     string `xml:"http://www.w3.org/XML/1998/namespace lang,attr,omitempty"`
 	Chardata string `xml:",chardata"`
 }
 
 // Non-human-readable content of some sort, used by the protocol.
 type Data struct {
-	XMLName xml.Name
+	XMLName  xml.Name
 	Chardata string `xml:",chardata"`
 }
 
