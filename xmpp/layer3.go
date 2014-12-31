@@ -130,7 +130,7 @@ func (cl *Client) handleFeatures(fe *Features) {
 }
 
 func (cl *Client) handleTls(t *starttls) {
-	cl.layer1.startTls(&cl.tlsConfig)
+	cl.layer1.startTls(cl.tlsConfig)
 
 	cl.setStatus(StatusConnectedTls)
 

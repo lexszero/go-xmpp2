@@ -10,7 +10,7 @@ func TestStatusListen(t *testing.T) {
 	l := sm.newListener()
 	stat, ok := <-l
 	if !ok {
-		t.Error()
+		t.Error("closed")
 	} else if stat != StatusUnconnected {
 		t.Errorf("got %d", stat)
 	}
@@ -18,7 +18,7 @@ func TestStatusListen(t *testing.T) {
 	sm.setStatus(StatusConnected)
 	stat, ok = <-l
 	if !ok {
-		t.Error()
+		t.Error("closed")
 	} else if stat != StatusConnected {
 		t.Errorf("got %d", stat)
 	}
@@ -26,7 +26,7 @@ func TestStatusListen(t *testing.T) {
 	sm.setStatus(StatusBound)
 	stat, ok = <-l
 	if !ok {
-		t.Error()
+		t.Error("closed")
 	} else if stat != StatusBound {
 		t.Errorf("got %d", stat)
 	}
