@@ -79,7 +79,7 @@ type Client struct {
 	// Features advertised by the remote.
 	Features                     *Features
 	sendFilterAdd, recvFilterAdd chan Filter
-	tlsConfig                    tls.Config
+	tlsConfig                    *tls.Config
 	layer1                       *layer1
 	error                        chan error
 	shutdownOnce                 sync.Once
@@ -89,16 +89,17 @@ type Client struct {
 // with the provided password and TLS config. Zero or more extensions
 // may be specified. The initial presence will be broadcast. If status
 // is non-nil, connection progress information will be sent on it.
-func NewClient(jid *JID, password string, tlsconf tls.Config, exts []Extension,
+func NewClient(jid *JID, password string, tlsconf *tls.Config, exts []Extension,
 	pr Presence, status chan<- Status) (*Client, error) {
 
 	// Resolve the domain in the JID.
-	_, srvs, err := net.LookupSRV(clientSrv, "tcp", jid.Domain())
+	domain := jid.Domain()
+	_, srvs, err := net.LookupSRV(clientSrv, "tcp", domain)
 	if err != nil {
-		return nil, fmt.Errorf("LookupSrv %s: %v", jid.Domain, err)
+		return nil, fmt.Errorf("LookupSrv %s: %v", domain, err)
 	}
 	if len(srvs) == 0 {
-		return nil, fmt.Errorf("LookupSrv %s: no results", jid.Domain)
+		return nil, fmt.Errorf("LookupSrv %s: no results", domain)
 	}
 
 	var tcp *net.TCPConn
@@ -125,7 +126,7 @@ func NewClient(jid *JID, password string, tlsconf tls.Config, exts []Extension,
 
 // Connect to the specified host and port. This is otherwise identical
 // to NewClient.
-func NewClientFromHost(jid *JID, password string, tlsconf tls.Config,
+func NewClientFromHost(jid *JID, password string, tlsconf *tls.Config,
 	exts []Extension, pr Presence, status chan<- Status, host string,
 	port int) (*Client, error) {
 
@@ -142,7 +143,7 @@ func NewClientFromHost(jid *JID, password string, tlsconf tls.Config,
 	return newClient(tcp, jid, password, tlsconf, exts, pr, status)
 }
 
-func newClient(tcp *net.TCPConn, jid *JID, password string, tlsconf tls.Config,
+func newClient(tcp *net.TCPConn, jid *JID, password string, tlsconf *tls.Config,
 	exts []Extension, pr Presence, status chan<- Status) (*Client, error) {
 
 	// Include the mandatory extensions.
